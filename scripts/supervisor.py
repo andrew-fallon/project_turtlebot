@@ -194,6 +194,11 @@ class Supervisor:
 
         # logs the current mode
         if not(self.last_mode_printed == self.mode):
+            # text_marker = Marker()
+            # text_marker.type = TEXT_VIEW_FACING
+            # text_marker.text = self.mode
+            # print type(self.mode)
+            # textpub.publish(text_marker)
             rospy.loginfo("Current Mode: %s", self.mode)
             self.last_mode_printed = self.mode
 
