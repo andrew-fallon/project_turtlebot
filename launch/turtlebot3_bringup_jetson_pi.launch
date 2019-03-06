@@ -3,7 +3,7 @@
     <include file="$(find velodyne_pointcloud)/launch/VLP16_points.launch" />
 
     <!-- PU NAME OF YOUR PI HERE -->
-    <machine name="pi" address="<name of pi>.local" env-loader="~/catkin_ws/devel/env_pi.sh" user="aa274" password="aa274" />
+    <machine name="pi" address="bacon.local" env-loader="~/catkin_ws/devel/env_pi.sh" user="aa274" password="aa274" />
 
 
 

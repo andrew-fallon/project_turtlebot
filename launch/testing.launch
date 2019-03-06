@@ -1,0 +1,14 @@
+<launch>
+
+	<rosparam param="sim">false</rosparam>
+	<rosparam param="map">true</rosparam>
+	<rosparam param="use_tf">false</rosparam>
+	<!-- <rosparam param="rviz">true</rosparam> -->
+
+  <node pkg="project_turtlebot" type="cmd_pose_commander.py" name="turtlebot_pose_cmd" />
+  <node pkg="project_turtlebot" type="pose_controller.py" name="turtlebot_pose_ctrl" />
+  <node pkg="project_turtlebot" type="custom_viz.py" name="turtlebot_markers" />
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find project_turtlebot)/rviz/project_config.rviz"/>
+  <node pkg="project_turtlebot" type="supervisor.py" name="turtlebot_supervisor" />
+
+</launch>
