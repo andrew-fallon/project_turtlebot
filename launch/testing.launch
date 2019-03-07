@@ -10,5 +10,6 @@
   <node pkg="project_turtlebot" type="custom_viz.py" name="turtlebot_markers" />
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find project_turtlebot)/rviz/project_config.rviz"/>
   <node pkg="project_turtlebot" type="supervisor.py" name="turtlebot_supervisor" />
+  <node pkg="project_turtlebot" type="store_locations.py" name="turtlebot_detected_locations" />
 
 </launch>
