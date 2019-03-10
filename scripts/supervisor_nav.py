@@ -22,13 +22,13 @@ POS_EPS = .1
 THETA_EPS = .3
 
 # time to stop at a stop sign
-STOP_TIME = 10
+STOP_TIME = 7
 
 # minimum distance from a stop sign to obey it
-STOP_MIN_DIST = .5
+STOP_MIN_DIST = 1.5
 
 # time taken to cross an intersection
-CROSSING_TIME = 3
+CROSSING_TIME = 5
 
 # state machine modes, not all implemented
 class Mode(Enum):
@@ -118,7 +118,6 @@ class Supervisor:
 
         # distance of the stop sign
         dist = msg.distance
-
         # if close enough and in nav mode, stop
         if dist > 0 and dist < STOP_MIN_DIST and self.mode == Mode.NAV:
             self.init_stop_sign()
@@ -145,7 +144,6 @@ class Supervisor:
 
     def stay_idle(self):
         """ sends zero velocity to stay put """
-
         vel_g_msg = Twist()
         self.cmd_vel_publisher.publish(vel_g_msg)
 
