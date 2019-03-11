@@ -2,7 +2,7 @@
 
 import rospy
 from gazebo_msgs.msg import ModelStates
-from std_msgs.msg import Float32MultiArray, String
+from std_msgs.msg import Float32MultiArray, String, Int16
 from geometry_msgs.msg import Twist, PoseArray, Pose2D, PoseStamped
 from asl_turtlebot.msg import DetectedObject
 import tf
@@ -61,6 +61,7 @@ class Supervisor:
         self.nav_goal_publisher = rospy.Publisher('/cmd_nav', Pose2D, queue_size=10)
         # command vel (used for idling)
         self.cmd_vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+        self.state_publisher = rospy.Publisher('/state', String, queue_size=10)
 
         # subscribers
         # stop sign detector
@@ -179,6 +180,7 @@ class Supervisor:
         mode (i.e. the finite state machine's state), if takes appropriate
         actions. This function shouldn't return anything """
 
+	
         if not use_gazebo:
             try:
                 origin_frame = "/map" if mapping else "/odom"
@@ -199,6 +201,7 @@ class Supervisor:
         if self.mode == Mode.IDLE:
             # send zero velocity
             self.stay_idle()
+	    self.state_publisher.publish("IDLE")
 
         elif self.mode == Mode.POSE:
             # moving towards a desired pose
@@ -206,6 +209,7 @@ class Supervisor:
                 self.mode = Mode.IDLE
             else:
                 self.go_to_pose()
+	    self.state_publisher.publish("POSE")
 
         elif self.mode == Mode.STOP:
             # at a stop sign
@@ -213,6 +217,7 @@ class Supervisor:
                 self.init_crossing()
             else:
                 self.stay_idle()
+	    self.state_publisher.publish("STOP")
 
         elif self.mode == Mode.CROSS:
             # crossing an intersection
@@ -220,12 +225,14 @@ class Supervisor:
                 self.mode = Mode.NAV
             else:
                 self.nav_to_pose()
+	    self.state_publisher.publish("CROSS")
 
         elif self.mode == Mode.NAV:
             if self.close_to(self.x_g,self.y_g,self.theta_g):
                 self.mode = Mode.IDLE
             else:
                 self.nav_to_pose()
+	    self.state_publisher.publish("NAV")
 
         else:
             raise Exception('This mode is not supported: %s'
