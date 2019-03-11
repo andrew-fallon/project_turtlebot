@@ -38,6 +38,7 @@ class Mode(Enum):
     CROSS = 4
     NAV = 5
     MANUAL = 6
+    INITIAL = 7
 
 
 print "supervisor settings:\n"
@@ -52,7 +53,7 @@ class Supervisor:
         self.x = 0
         self.y = 0
         self.theta = 0
-        self.mode = Mode.IDLE
+        self.mode = Mode.INITIAL
         self.last_mode_printed = None
         self.trans_listener = tf.TransformListener()
         # command pose for controller
@@ -73,6 +74,7 @@ class Supervisor:
         # we can subscribe to nav goal click
         rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.rviz_goal_callback)
         
+
     def gazebo_callback(self, msg):
         pose = msg.pose[msg.name.index("turtlebot3_burger")]
         twist = msg.twist[msg.name.index("turtlebot3_burger")]
@@ -174,6 +176,12 @@ class Supervisor:
 
         return (self.mode == Mode.CROSS and (rospy.get_rostime()-self.cross_start)>rospy.Duration.from_sec(CROSSING_TIME))
 
+    def delay(self, time):
+        """ delays for specified number of seconds (time must be integer) """
+        rate = rospy.Rate(1) # 1 Hz
+        for i in range(time):
+            rate.sleep() # Sleeps for 1/rate sec
+
     def loop(self):
         """ the main loop of the robot. At each iteration, depending on its
         mode (i.e. the finite state machine's state), if takes appropriate
@@ -226,6 +234,15 @@ class Supervisor:
                 self.mode = Mode.IDLE
             else:
                 self.nav_to_pose()
+
+        elif self.mode == Mode.INITIAL:
+            self.delay(1)   # Delay 1 second for startup
+            # Drive straight forward
+            vel = Twist()
+            vel.linear.x = 0.15
+            self.cmd_vel_publisher.publish(vel) # Send drive command
+            self.delay(1)           # Delay two seconds
+            self.mode = Mode.IDLE   # Switch to idle
 
         else:
             raise Exception('This mode is not supported: %s'
