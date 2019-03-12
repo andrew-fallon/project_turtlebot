@@ -245,5 +245,6 @@ class Supervisor:
             rate.sleep()
 
 if __name__ == '__main__':
+    # jasdfi
     sup = Supervisor()
     sup.run()
