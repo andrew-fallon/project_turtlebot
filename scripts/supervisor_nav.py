@@ -180,7 +180,7 @@ class Supervisor:
         mode (i.e. the finite state machine's state), if takes appropriate
         actions. This function shouldn't return anything """
 
-	
+    
         if not use_gazebo:
             try:
                 origin_frame = "/map" if mapping else "/odom"
@@ -201,7 +201,7 @@ class Supervisor:
         if self.mode == Mode.IDLE:
             # send zero velocity
             self.stay_idle()
-	    self.state_publisher.publish("IDLE")
+            self.state_publisher.publish("IDLE")
 
         elif self.mode == Mode.POSE:
             # moving towards a desired pose
@@ -209,7 +209,7 @@ class Supervisor:
                 self.mode = Mode.IDLE
             else:
                 self.go_to_pose()
-	    self.state_publisher.publish("POSE")
+            self.state_publisher.publish("POSE")
 
         elif self.mode == Mode.STOP:
             # at a stop sign
@@ -217,7 +217,7 @@ class Supervisor:
                 self.init_crossing()
             else:
                 self.stay_idle()
-	    self.state_publisher.publish("STOP")
+            self.state_publisher.publish("STOP")
 
         elif self.mode == Mode.CROSS:
             # crossing an intersection
@@ -225,14 +225,14 @@ class Supervisor:
                 self.mode = Mode.NAV
             else:
                 self.nav_to_pose()
-	    self.state_publisher.publish("CROSS")
+            self.state_publisher.publish("CROSS")
 
         elif self.mode == Mode.NAV:
             if self.close_to(self.x_g,self.y_g,self.theta_g):
                 self.mode = Mode.IDLE
             else:
                 self.nav_to_pose()
-	    self.state_publisher.publish("NAV")
+            self.state_publisher.publish("NAV")
 
         else:
             raise Exception('This mode is not supported: %s'
