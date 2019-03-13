@@ -57,6 +57,7 @@ class Supervisor:
         self.last_mode_printed = None
         # initialize delivery flag to false to start in explore mode:
         self.deliv_flag = False
+        self.deliv_queue = []
         self.trans_listener = tf.TransformListener()
         # command pose for controller
         self.pose_goal_publisher = rospy.Publisher('/cmd_pose', Pose2D, queue_size=10)
@@ -88,29 +89,46 @@ class Supervisor:
         # print('hi')
         # print(msg)
         # print(msg.data)
+
+        # NEW
         if msg.data == None:
             self.deliv_flag = False
         else:
+            # str_msg = msg.data
+            # lst_msg = str_msg.split(",")
+            # new_queue = self.deliv_queue
+            # new_queue.extend(lst_msg)
+            # self.deliv_queue = new_queue
+            # lst_msg = msg.data.split(",")
             self.deliv_flag = True
-            # TO DO:associate delivery requests with marker locations 
-            if msg.data == "":
-                self.x_g = 0
-                self.y_g = 0
-                self.th_g = 0
-            else:
-                if msg.data == 'bottle':
-                    m_arrays = rospy.wait_for_message("bottle_markers", MarkerArray)
-                elif msg.data = 'stop_sign': 
-                    m_arrays = rospy.wait_for_message("stop_sign_markers", MarkerArray)
-                print(m_arrays)
-                m_array = m_arrays.markers[0]
-                print(m_array)
-                self.x_g = m_array.pose.position[0]
-                self.y_g = m_array.pose.position[1]
-                euler = tf.transformation.euler_from_quaternion(m_array.pose.orientation)
-                self.th_g = euler[2]
-            self.mode = Mode.NAV
+            self.deliv_queue.extend(msg.data.split(","))
+        print(self.deliv_queue)
         print(self.deliv_flag)
+
+        # ORIGINAL
+        # if msg.data == None:
+        #     self.deliv_flag = False
+        # else:
+        #     self.deliv_flag = True
+        #     # TO DO:associate delivery requests with marker locations 
+        #     if msg.data == "":
+        #         self.x_g = 0
+        #         self.y_g = 0
+        #         self.theta_g = 0
+        #     else:
+        #         if msg.data == 'bottle':
+        #             m_arrays = rospy.wait_for_message("bottle_markers", MarkerArray)
+        #         elif msg.data == 'stop_sign': 
+        #             m_arrays = rospy.wait_for_message("stop_sign_markers", MarkerArray)
+        #         print(m_arrays)
+        #         m_array = m_arrays.markers[0]
+        #         print(m_array)
+        #         self.x_g = m_array.pose.position[0]
+        #         self.y_g = m_array.pose.position[1]
+        #         euler = tf.transformation.euler_from_quaternion(m_array.pose.orientation)
+        #         self.theta_g = euler[2]
+        #     self.mode = Mode.NAV
+        # print(self.deliv_flag)
 
     def gazebo_callback(self, msg):
         pose = msg.pose[msg.name.index("turtlebot3_burger")]
@@ -143,6 +161,9 @@ class Supervisor:
             self.theta_g = euler[2]
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             pass
+        # if a 2d nav goal is set then delivery mode is turned off and the delivery queue is reset
+        self.deliv_flag = False
+        self.deliv_queue = []
         self.mode = Mode.NAV
 
     def nav_pose_callback(self, msg):
@@ -229,7 +250,6 @@ class Supervisor:
                 self.theta = euler[2]
             except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
                 pass
-
         # logs the current mode
         if not(self.last_mode_printed == self.mode):
             rospy.loginfo("Current Mode: %s", self.mode)
@@ -238,8 +258,35 @@ class Supervisor:
         # checks wich mode it is in and acts accordingly
         if self.mode == Mode.IDLE:
             # send zero velocity
-            self.stay_idle()
-            self.state_publisher.publish("IDLE")
+            if self.deliv_flag:
+                if len(self.deliv_queue) == 0:
+                    self.deliv_flag = False
+                    self.stay_idle()
+                    self.state_publisher.publish("IDLE")
+                elif len(self.deliv_queue) == 1:
+                    self.deliv_queue.pop(0)
+                    self.x_g = 0
+                    self.y_g = 0
+                    self.theta_g = 0
+                    self.mode = Mode.NAV
+                else:
+                    self.deliv_queue.pop(0)
+                    if self.deliv_queue[0] == 'bottle':
+                        m_arrays = rospy.wait_for_message("bottle_markers", MarkerArray)
+                    elif self.deliv_queue[0] == 'stop_sign': 
+                        m_arrays = rospy.wait_for_message("stop_sign_markers", MarkerArray)
+                    # print(m_arrays)
+                    # print(m_arrays.markers)
+                    m_array = m_arrays.markers[0]
+                    print(m_array)
+                    self.x_g = m_array.pose.position[0]
+                    self.y_g = m_array.pose.position[1]
+                    euler = tf.transformation.euler_from_quaternion(m_array.pose.orientation)
+                    self.theta_g = euler[2]
+                    self.mode = Mode.NAV
+            else:
+                self.stay_idle()
+                self.state_publisher.publish("IDLE")
 
         elif self.mode == Mode.POSE:
             # moving towards a desired pose
@@ -283,6 +330,5 @@ class Supervisor:
             rate.sleep()
 
 if __name__ == '__main__':
-    # jasdfi
     sup = Supervisor()
     sup.run()
