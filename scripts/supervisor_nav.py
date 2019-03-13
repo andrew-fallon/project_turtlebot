@@ -104,7 +104,7 @@ class Supervisor:
             else:
                 if msg.data == 'bottle':
                     m_arrays = rospy.wait_for_message("bottle_markers", MarkerArray)
-                elif msg.data = 'stop_sign': 
+                elif msg.data == 'stop_sign': 
                     m_arrays = rospy.wait_for_message("stop_sign_markers", MarkerArray)
                 print(m_arrays)
                 m_array = m_arrays.markers[0]
@@ -345,6 +345,12 @@ class Supervisor:
         else:
             raise Exception('This mode is not supported: %s'
                 % str(self.mode))
+
+	curr_position = Pose2D()
+        curr_position.x = self.x
+        curr_position.y = self.y
+        curr_position.theta = self.theta
+        self.pose_publisher.publish(curr_position)
 
     def run(self):
         rate = rospy.Rate(10) # 10 Hz
