@@ -12,6 +12,8 @@ class AStar(object):
         self.resolution = resolution               # resolution of the discretization of state space (cell/m)
         self.x_init = self.snap_to_grid(x_init)    # initial state
         self.x_goal = self.snap_to_grid(x_goal)    # goal state
+        self.init_err = False                      # true when x_init has no neighbors
+        self.goal_err = False                      # true when x_goal has no neighbors
 
         self.closed_set = []    # the set containing the states that have been visited
         self.open_set = []      # the set containing the states that are condidate for future expension
@@ -130,6 +132,14 @@ class AStar(object):
     # INPUT: None
     # OUTPUT: Boolean, True if a solution from x_init to x_goal was found
     def solve(self):
+        # check for end point errors
+        if not self.get_neighbors(self.x_init):
+            self.init_err = True
+            return False 
+        elif not self.get_neighbors(self.x_goal):
+            self.goal_err = True
+            return False
+
         while len(self.open_set)>0:
             # TODO: fill me in!
             # Pick the best option from tne open set, add it to closed set and remove from open set
@@ -155,6 +165,7 @@ class AStar(object):
                 self.came_from[neghibor] = x_cur
                 self.g_score[neghibor] = g_prime
                 self.f_score[neghibor] = g_prime + self.distance(neghibor,self.x_goal)
+        rospy.loginfo('you are stuck')
         return False
 
 # A 2D state space grid with a set of rectangular obstacles. The grid is fully deterministic
