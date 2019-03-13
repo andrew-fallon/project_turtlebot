@@ -27,7 +27,7 @@ class Explorer:
         self.front_msg = Pose2D()
         self.goal_pose = None
 
-        self.frontier_pub = rospy.Publisher('/cmd_nav', Pose2D, queue_size=10)
+        self.frontier_pub = rospy.Publisher('/nav_pose', Pose2D, queue_size=10)
         rospy.Subscriber('/map_metadata', MapMetaData, self.map_md_callback)
         rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
 
@@ -104,25 +104,40 @@ class Explorer:
             x = translation[0]
             y = translation[1]
 
+            if not self.occupancy.is_free((x,y)):
+                rospy.logwarn('Explorer: X init not free, should kick the turtle')
+                return
+
             # print type(self.occupancy.probs)
             PossibleLocations = getfrontier(self.MapData)
             FreeLocations = []
             distances = []
+            Centroid = None
             for location in PossibleLocations:
                 if self.occupancy.is_free(location):
                     # print "Location is free: ",location
                     FreeLocations.append(location)
                     dist = ((location[0]-x)**2+(location[1]-y)**2)**0.5
                     distances.append(dist)
-            Centroid = FreeLocations[np.argmin(distances)]
+            if not distances:
+                rospy.loginfo('Explorer: No frontiers at this location')
+            else:
+                Centroid = FreeLocations[np.argmin(distances)]
 
-            if self.goal_pose is None or not self.occupancy.is_free(self.goal_pose):
+            if self.goal_pose is None and Centroid is not None:
                 print "Setting new goal!",Centroid
                 print "Goal free? ",self.occupancy.is_free(Centroid)
                 self.goal_pose = Centroid
                 self.front_msg = Pose2D(Centroid[0],Centroid[1],0.0)
+            elif self.goal_pose is None and Centroid is None:
+                rospy.loginfo('Explorer: Map fully explored!')
+                return
+            elif not self.occupancy.is_free(self.goal_pose):
+                rospy.logwarn("Explorer: Goal is occupied, pick a new frontier")
+                self.goal_pose = None
+                return
             else:
-                print"No new goal, currently goint to: ",self.goal_pose
+                print"No new goal, currently going to: ",self.goal_pose
 
             # robot_ind = self.pos2ind((x,y))
             # # print 'robot ind ',robot_ind
