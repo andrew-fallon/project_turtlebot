@@ -251,33 +251,49 @@ class Supervisor:
                 self.nav_to_pose()
 
         elif self.mode == Mode.INITIAL:
+        	# Wait for startup
 			if self.init_state == 0:
 				self.wait(2)
 				if self.waiting == 0:
 					self.waiting = 1 		# Re-arm waiting
-					self.init_state = 1	# Switch to drive forward state
+					self.init_state = 1		# Switch to drive forward state
+
+			# Drive straight forward		
 			elif self.init_state == 1:
-			# Drive straight forward
 				vel = Twist()
-				vel.linear.x = -0.05
+				vel.linear.x = 0.15			# ** SPEED TO DRIVE FORWARD **
 				self.cmd_vel_publisher.publish(vel) # Send drive command
-				self.wait(1)
+				self.wait(2.0)				# ** TIME TO DRIVE FORWARD **
 				if self.waiting == 0:		# If waiting disarmed
 					self.stay_idle()		# Stop Moving
 					self.waiting = 1 		# Re-arm waiting
-					self.x_g = self.x +1
+					self.x_g = self.x
 					self.y_g = self.y
 					self.theta_g = self.theta + np.pi 	#Wrap to pi
 					if self.theta_g > np.pi:
 						self.theta_g = self.theta_g - 2*np.pi
 					self.init_state = 2		# Switch to turn state
-			elif self.init_state == 2:
-				# Move to goal pose
-				print 'current = ', self.theta
-				print 'goal = ', self.theta_g
-				self.go_to_pose()
-				if self.close_to(self.x_g,self.y_g,self.theta_g):
-					self.init_state = 3
+
+			# # Turn 180 degrees
+			# elif self.init_state == 2:
+			# 	vel = Twist()
+			# 	vel.angular.z = 1.0					# Turning speed
+			# 	self.cmd_vel_publisher.publish(vel)	# Start turning
+			# 	if self.close_to(self.x_g,self.y_g,self.theta_g):
+			# 		self.stay_idle			# Stop
+			# 		self.init_state = 3
+			# 		# Next pose
+			# 		dist = 0.25			# Distance to drive forward
+			# 		self.x_g = self.x + dist*math.cos(self.theta)
+			# 		self.y_g = self.y + dist*math.sin(self.theta)
+
+			# # Drive forward 1.2m
+			# elif self.init_state == 3:
+			# 	self.go_to_pose()
+			# 	if self.close_to(self.x_g,self.y_g,self.theta_g):
+			# 		self.stay_idle			# Stop
+			# 		self.init_state = 4
+
 			else:
 				self.mode = Mode.IDLE   # Switch to idle
 
