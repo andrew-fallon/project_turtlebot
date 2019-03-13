@@ -18,17 +18,17 @@ mapping = rospy.get_param("map")
 
 
 # threshold at which we consider the robot at a location
-POS_EPS = .1
-THETA_EPS = .3
+POS_EPS = .1    # meters
+THETA_EPS = .3  # radians
 
 # time to stop at a stop sign
-STOP_TIME = 7
+STOP_TIME = 4
 
 # minimum distance from a stop sign to obey it
 STOP_MIN_DIST = 1.5
 
 # time taken to cross an intersection
-CROSSING_TIME = 5
+CROSSING_TIME = 10
 
 # state machine modes, not all implemented
 class Mode(Enum):
@@ -140,7 +140,7 @@ class Supervisor:
         self.pose_goal_publisher.publish(pose_g_msg)
 
     def nav_to_pose(self):
-        """ sends the current desired pose to the naviagtor """
+        """ sends the current desired pose to the navigator """
 
         nav_g_msg = Pose2D()
         nav_g_msg.x = self.x_g
