@@ -27,7 +27,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: Image
 Visualization Manager:
   Class: ""
   Displays:
@@ -76,7 +76,7 @@ Visualization Manager:
       Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
-      Max Intensity: 117
+      Max Intensity: 126
       Min Color: 0; 0; 0
       Min Intensity: 0
       Name: PointCloud2
@@ -96,25 +96,17 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
-        base_camera:
-          Value: false
         base_footprint:
           Value: true
-        base_link:
-          Value: false
-        base_scan:
-          Value: false
-        caster_back_link:
-          Value: false
-        imu_link:
+        camera:
           Value: false
         map:
           Value: true
         odom:
           Value: false
-        wheel_left_link:
+        raspicam:
           Value: false
-        wheel_right_link:
+        velodyne:
           Value: false
       Marker Scale: 1
       Name: TF
@@ -125,19 +117,11 @@ Visualization Manager:
         map:
           odom:
             base_footprint:
-              base_link:
-                base_camera:
+              raspicam:
+                camera:
                   {}
-                base_scan:
-                  {}
-                caster_back_link:
-                  {}
-                imu_link:
-                  {}
-                wheel_left_link:
-                  {}
-                wheel_right_link:
-                  {}
+              velodyne:
+                {}
       Update Interval: 0
       Value: true
     - Alpha: 0.699999988

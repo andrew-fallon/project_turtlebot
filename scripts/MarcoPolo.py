@@ -26,7 +26,7 @@ START_POS_THRESH = .4
 # thereshold in theta to start moving forward when path following
 THETA_START_THRESH = 0.09
 # P gain on orientation before start
-THETA_START_P = 2.0
+THETA_START_P = .75
 
 # maximum velocity
 V_MAX = .2
@@ -84,11 +84,13 @@ class Navigator:
         # variables for the controller
         self.V_prev = 0
         self.V_prev_t = rospy.get_rostime()
+        self.occupancy_iter = 0
 
         self.nav_path_pub = rospy.Publisher('/cmd_path', Path, queue_size=10)
         self.nav_pose_pub = rospy.Publisher('/cmd_pose', Pose2D, queue_size=10)
         self.nav_pathsp_pub = rospy.Publisher('/cmd_path_sp', PoseStamped, queue_size=10)
         self.nav_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+        self.send_help = rospy.Publisher('/new_goal_requested', String, queue_size=10)
 
         self.trans_listener = tf.TransformListener()
 
@@ -121,6 +123,7 @@ class Navigator:
                                                   8,
                                                   self.map_probs)
             self.occupancy_updated = True
+            self.occupancy_iter += 1
 
     def close_to_end_location(self):
         return (abs(self.x-self.x_g)<END_POS_THRESH and abs(self.y-self.y_g)<END_POS_THRESH)
@@ -173,7 +176,7 @@ class Navigator:
         # if there is no plan, we are far from the start of the plan,
         # or the occupancy grid has been updated, update the current plan
         # rospy.loginfo('Here 0 - check if there is a plan')
-        if len(self.current_plan)==0 or not(self.close_to_start_location()) or self.occupancy_updated:
+        if len(self.current_plan)==0 or not(self.close_to_start_location()) or self.occupancy_iter>50:
 
             # use A* to compute new plan
             state_min = self.snap_to_grid((-self.plan_horizon, -self.plan_horizon))
@@ -232,8 +235,16 @@ class Navigator:
             else:
                 rospy.logwarn("Navigator: Could not find path")
                 self.current_plan = []
+                if problem.init_err:
+                    rospy.logwarn("X_init error, kick the robot")
+                elif problem.goal_err:
+                    rospy.logwarn("Goal error, request new goal")
+                else:
+                    rospy.logwarn("Goal not reachable. Request new goal")
+                    self.send_help.publish("Help!")
+
         # if we have a path, execute it (we need at least 3 points for this controller)
-        if len(self.current_plan) > 3:
+        if len(self.current_plan) > 1:
             # if currently not moving, first line up with the plan
             
             if self.V_prev == 0:
@@ -289,10 +300,14 @@ class Navigator:
 
             # apply saturation limits
             cmd_x_dot = np.sign(V)*min(V_MAX, np.abs(V))
+            # if cmd_x_dot < 0:
+            #     cmd_x_dot = 0
+            #     rospy.loginfo("Wanted to move backwards...")
             cmd_theta_dot = np.sign(om)*min(W_MAX, np.abs(om))
         elif len(self.current_plan) > 0:
             # using the pose controller for paths too short
             # just send the next point
+            rospy.loginfo("Navigator: Using pose controller")
             pose_g_msg = Pose2D()
             pose_g_msg.x = self.current_plan[0][0]
             pose_g_msg.y = self.current_plan[0][1]
