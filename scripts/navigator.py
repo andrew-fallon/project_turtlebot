@@ -29,13 +29,13 @@ THETA_START_THRESH = 0.09
 THETA_START_P = 1
 
 # maximum velocity
-V_MAX = .2/2
+V_MAX = 0.3 # .2/2 original value
 
 # maximim angular velocity
-W_MAX = .4/2
+W_MAX = 0.5 # .4/2 original value
 
 # desired crusing velocity
-V_DES = 0.12/2
+V_DES = 0.3 # 0.12/2 original value
 
 # gains of the path follower
 KPX = .5
@@ -91,7 +91,6 @@ class Navigator:
 
         # additional publishers
         self.nav_stuck_pub = rospy.Publisher('/is_stuck', Bool, queue_size=10)
-        self.nav_stuck_pub.publish(Bool(self.is_stuck))
 
         self.trans_listener = tf.TransformListener()
 
@@ -154,9 +153,10 @@ class Navigator:
             self.current_plan = []
 
             rospy.logwarn("Navigator: Totally stuck, send help!")
+            self.stuck_iter = 0
             return
       
-        deltas = (2*self.map_resolution) * np.array([[0, 1], [-1, 0], [0, -1], [1, 0]])
+        deltas = (5*self.map_resolution) * np.array([[0, 1], [-1, 0], [0, -1], [1, 0]])
         x_new = np.array([self.x - deltas[n, 0], self.y - deltas[n, 1], self.theta])
 
         # using the pose controller to try new starting position for search
@@ -165,6 +165,21 @@ class Navigator:
         pose_g_msg.y = x_new[1]
         pose_g_msg.theta = x_new[2]
         self.nav_pose_pub.publish(pose_g_msg)
+        return
+
+    def kick(self):
+        """
+        Perturbes the current state in an effort to handle x_init glitches in the A* algorithm
+        """
+        dx = np.random.choice(np.array([-1, 1])) * (5*self.map_resolution)
+        dy = np.random.choice(np.array([-1, 1])) * (5*self.map_resolution)
+
+        # send perturbed pose to pose controller
+        pose_msg = Pose2D()
+        pose_msg.x = self.x - dx
+        pose_msg.y = self.y - dy
+        pose_msg.theta = self.theta
+        self.nav_pose_pub.publish(pose_msg)
         return
 
     def run_navigator(self):
@@ -256,10 +271,20 @@ class Navigator:
                     # plt.show()
                 else:
                     rospy.logwarn("Navigator: Path too short, not updating")
+            
+            elif problem.init_err:
+                rospy.logwarn("Navigator: x_init had no neighbors, moving to new position...")
+                self.kick()
+                return
+            elif problem.goal_err:
+                rospy.logwarn("Navigator: x_goal had no neighbors, uh oh...")
+                return
             else:
+                # you are stuck
                 rospy.logwarn("Navigator: Could not find path, attempting to get unstuck (attempt {})...".format(self.stuck_iter))
                 self.get_unstuck()
                 self.stuck_iter += 1
+                self.nav_stuck_pub.publish(Bool(False))     # reset global stuck boolean
                 return
 
         # if we have a path, execute it (we need at least 3 points for this controller)
