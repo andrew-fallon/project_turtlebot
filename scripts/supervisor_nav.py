@@ -8,6 +8,7 @@ from asl_turtlebot.msg import DetectedObject
 import tf
 import math
 from enum import Enum
+import numpy as np
 
 # if sim is True/using gazebo, therefore want to subscribe to /gazebo/model_states\
 # otherwise, they will use a TF lookup (hw2+)
@@ -62,6 +63,8 @@ class Supervisor:
         self.nav_goal_publisher = rospy.Publisher('/cmd_nav', Pose2D, queue_size=10)
         # command vel (used for idling)
         self.cmd_vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+        self.waiting = 1 	# Used to keep track of waiting (0=disarmed, 1=armed, 2=waiting)
+        self.init_state = 0	# Keeps track of initialization state
 
         # subscribers
         # stop sign detector
@@ -182,6 +185,18 @@ class Supervisor:
         for i in range(time):
             rate.sleep() # Sleeps for 1/rate sec
 
+    def get_time(self):
+    	""" Gets current ROS time """
+    	self.time = rospy.get_rostime()
+
+    def wait(self, wait_time):
+    	if self.waiting == 1:	# If waiting armed
+    		self.waiting = 2	# Set wating mode
+    		self.start_time = rospy.get_rostime()
+    	if rospy.get_rostime() - self.start_time > rospy.Duration.from_sec(wait_time):
+    		self.waiting = 0	# Disarm waiting
+
+
     def loop(self):
         """ the main loop of the robot. At each iteration, depending on its
         mode (i.e. the finite state machine's state), if takes appropriate
@@ -236,13 +251,36 @@ class Supervisor:
                 self.nav_to_pose()
 
         elif self.mode == Mode.INITIAL:
-            self.delay(1)   # Delay 1 second for startup
-            # Drive straight forward
-            vel = Twist()
-            vel.linear.x = 0.15
-            self.cmd_vel_publisher.publish(vel) # Send drive command
-            self.delay(1)           # Delay two seconds
-            self.mode = Mode.IDLE   # Switch to idle
+			if self.init_state == 0:
+				self.wait(2)
+				if self.waiting == 0:
+					self.waiting = 1 		# Re-arm waiting
+					self.init_state = 1	# Switch to drive forward state
+			elif self.init_state == 1:
+			# Drive straight forward
+				vel = Twist()
+				vel.linear.x = -0.05
+				self.cmd_vel_publisher.publish(vel) # Send drive command
+				self.wait(1)
+				if self.waiting == 0:		# If waiting disarmed
+					self.stay_idle()		# Stop Moving
+					self.waiting = 1 		# Re-arm waiting
+					self.x_g = self.x +1
+					self.y_g = self.y
+					self.theta_g = self.theta + np.pi 	#Wrap to pi
+					if self.theta_g > np.pi:
+						self.theta_g = self.theta_g - 2*np.pi
+					self.init_state = 2		# Switch to turn state
+			elif self.init_state == 2:
+				# Move to goal pose
+				print 'current = ', self.theta
+				print 'goal = ', self.theta_g
+				self.go_to_pose()
+				if self.close_to(self.x_g,self.y_g,self.theta_g):
+					self.init_state = 3
+			else:
+				self.mode = Mode.IDLE   # Switch to idle
+
 
         else:
             raise Exception('This mode is not supported: %s'
