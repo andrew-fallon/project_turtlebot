@@ -64,10 +64,12 @@
   <node pkg="project_turtlebot" type="detector.py" name="turtlebot_detector" output="screen"/>  
   <node pkg="project_turtlebot" type="pose_controller_nav.py" name="turtlebot_pose_controller_nav" />
   <node pkg="project_turtlebot" type="navigator.py" name="turtlebot_navigator" />
-  <node pkg="project_turtlebot" type="request_publisher.py" name="delivery_request_publisher" />
+  <node pkg="project_turtlebot" type="custom_viz.py" name="turtlebot_viz" />
+  <node pkg="project_turtlebot" type="state_viz.py" name="turtlebot_state_viz" />
+  <node pkg="project_turtlebot" type="explore.py" name="turtlebot_frontier" />
 
 
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find project_turtlebot)/rviz/nav.rviz"/>
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find project_turtlebot)/rviz/project_config.rviz"/>
 
 
 </launch>
