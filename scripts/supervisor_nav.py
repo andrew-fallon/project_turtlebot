@@ -4,6 +4,7 @@ import rospy
 from gazebo_msgs.msg import ModelStates
 from std_msgs.msg import Float32MultiArray, String, Int16, Bool
 from geometry_msgs.msg import Twist, PoseArray, Pose2D, PoseStamped
+from visualization_msgs.msg import Marker, MarkerArray
 from asl_turtlebot.msg import DetectedObject
 import tf
 import math
@@ -80,7 +81,6 @@ class Supervisor:
         # we can subscribe to nav goal click
         rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.rviz_goal_callback)
         rospy.Subscriber('/is_stuck', Bool, self.is_stuck_callback)
-        # subscribe to 
         rospy.Subscriber('/delivery_request', String, self.delivery_request_callback)
         
     def is_stuck_callback(self, msg):
@@ -89,13 +89,31 @@ class Supervisor:
             self.mode = Mode.IDLE
 
     def delivery_request_callback(self, msg):
-        print(msg)
-        print(msg.data)
-        if msg.data == "" or msg.data == None:
+        # print('hi')
+        # print(msg)
+        # print(msg.data)
+        if msg.data == None:
             self.deliv_flag = False
-            # TO DO:loop through and associate delivery requests with marker locations 
         else:
             self.deliv_flag = True
+            # TO DO:associate delivery requests with marker locations 
+            if msg.data == "":
+                self.x_g = 0
+                self.y_g = 0
+                self.th_g = 0
+            else:
+                if msg.data == 'bottle':
+                    m_arrays = rospy.wait_for_message("bottle_markers", MarkerArray)
+                elif msg.data = 'stop_sign': 
+                    m_arrays = rospy.wait_for_message("stop_sign_markers", MarkerArray)
+                print(m_arrays)
+                m_array = m_arrays.markers[0]
+                print(m_array)
+                self.x_g = m_array.pose.position[0]
+                self.y_g = m_array.pose.position[1]
+                euler = tf.transformation.euler_from_quaternion(m_array.pose.orientation)
+                self.th_g = euler[2]
+            self.mode = Mode.NAV
         print(self.deliv_flag)
 
     def gazebo_callback(self, msg):
