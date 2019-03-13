@@ -4,7 +4,7 @@ import rospy
 from nav_msgs.msg import OccupancyGrid, MapMetaData, Path
 from gazebo_msgs.msg import ModelStates
 from geometry_msgs.msg import Twist, PoseArray, Pose2D, PoseStamped
-from std_msgs.msg import Float32MultiArray, String
+from std_msgs.msg import Float32MultiArray, String, Bool
 import tf
 import numpy as np
 from numpy import linalg
@@ -76,6 +76,10 @@ class Navigator:
         self.plan_resolution =  0.05
         self.plan_horizon = 15
 
+        # additional parameters
+        self.is_stuck = False
+        self.stuck_iter = 0
+
         # variables for the controller
         self.V_prev = 0
         self.V_prev_t = rospy.get_rostime()
@@ -84,6 +88,10 @@ class Navigator:
         self.nav_pose_pub = rospy.Publisher('/cmd_pose', Pose2D, queue_size=10)
         self.nav_pathsp_pub = rospy.Publisher('/cmd_path_sp', PoseStamped, queue_size=10)
         self.nav_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+
+        # additional publishers
+        self.nav_stuck_pub = rospy.Publisher('/is_stuck', Bool, queue_size=10)
+        self.nav_stuck_pub.publish(Bool(self.is_stuck))
 
         self.trans_listener = tf.TransformListener()
 
@@ -127,6 +135,37 @@ class Navigator:
             snapped_start = self.snap_to_grid(self.current_plan_start_loc)
             return (abs(snapped_current[0]-snapped_start[0])<START_POS_THRESH and abs(snapped_current[1]-snapped_start[1])<START_POS_THRESH)
         return False
+
+
+    def get_unstuck(self):
+        """ 
+        moves the robot to a nearby state in an attempt to get the robot unstuck from its current 
+        position where it either cannot compute a path to the goal, or it is stuck against a wall.
+        
+        INPUTS: none
+        OUTPUTS: none
+
+        """
+        n = self.stuck_iter
+        nMax = 4        # maximum number of states to try
+        if n not in range(nMax):
+            self.is_stuck = True
+            self.nav_stuck_pub.publish(Bool(self.is_stuck))
+            self.current_plan = []
+
+            rospy.logwarn("Navigator: Totally stuck, send help!")
+            return
+      
+        deltas = (2*self.map_resolution) * np.array([[0, 1], [-1, 0], [0, -1], [1, 0]])
+        x_new = np.array([self.x - deltas[n, 0], self.y - deltas[n, 1], self.theta])
+
+        # using the pose controller to try new starting position for search
+        pose_g_msg = Pose2D()
+        pose_g_msg.x = x_new[0]
+        pose_g_msg.y = x_new[1]
+        pose_g_msg.theta = x_new[2]
+        self.nav_pose_pub.publish(pose_g_msg)
+        return
 
     def run_navigator(self):
         """ computes a path from current state to goal state using A* and sends it to the path controller """
@@ -172,6 +211,8 @@ class Navigator:
 
             rospy.loginfo("Navigator: Computing navigation plan")
             if problem.solve():
+                self.stuck_iter = 0
+                self.nav_stuck_pub.publish(Bool(False))
                 if len(problem.path) > 3:
                     # cubic spline interpolation requires 4 points
                     self.current_plan = problem.path
@@ -216,8 +257,11 @@ class Navigator:
                 else:
                     rospy.logwarn("Navigator: Path too short, not updating")
             else:
-                rospy.logwarn("Navigator: Could not find path")
-                self.current_plan = []
+                rospy.logwarn("Navigator: Could not find path, attempting to get unstuck (attempt {})...".format(self.stuck_iter))
+                rospy.loginfo
+                self.get_unstuck()
+                self.stuck_iter += 1
+                return
 
         # if we have a path, execute it (we need at least 3 points for this controller)
         if len(self.current_plan) > 3:

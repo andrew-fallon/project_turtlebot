@@ -2,7 +2,7 @@
 
 import rospy
 from gazebo_msgs.msg import ModelStates
-from std_msgs.msg import Float32MultiArray, String, Int16
+from std_msgs.msg import Float32MultiArray, String, Int16, Bool
 from geometry_msgs.msg import Twist, PoseArray, Pose2D, PoseStamped
 from asl_turtlebot.msg import DetectedObject
 import tf
@@ -73,7 +73,13 @@ class Supervisor:
             rospy.Subscriber('/gazebo/model_states', ModelStates, self.gazebo_callback)
         # we can subscribe to nav goal click
         rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.rviz_goal_callback)
+        rospy.Subscriber('/is_stuck', Bool, self.is_stuck_callback)
         
+    def is_stuck_callback(self, msg):
+        print(msg)
+        if msg.data:
+            self.mode = Mode.IDLE
+
     def gazebo_callback(self, msg):
         pose = msg.pose[msg.name.index("turtlebot3_burger")]
         twist = msg.twist[msg.name.index("turtlebot3_burger")]
