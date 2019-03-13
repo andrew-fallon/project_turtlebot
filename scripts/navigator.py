@@ -258,7 +258,6 @@ class Navigator:
                     rospy.logwarn("Navigator: Path too short, not updating")
             else:
                 rospy.logwarn("Navigator: Could not find path, attempting to get unstuck (attempt {})...".format(self.stuck_iter))
-                rospy.loginfo
                 self.get_unstuck()
                 self.stuck_iter += 1
                 return
