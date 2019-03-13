@@ -54,6 +54,8 @@ class Supervisor:
         self.theta = 0
         self.mode = Mode.IDLE
         self.last_mode_printed = None
+        # initialize delivery flag to false to start in explore mode:
+        self.deliv_flag = False
         self.trans_listener = tf.TransformListener()
         # command pose for controller
         self.pose_goal_publisher = rospy.Publisher('/cmd_pose', Pose2D, queue_size=10)
@@ -74,11 +76,23 @@ class Supervisor:
         # we can subscribe to nav goal click
         rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.rviz_goal_callback)
         rospy.Subscriber('/is_stuck', Bool, self.is_stuck_callback)
+        # subscribe to 
+        rospy.Subscriber('/delivery_request', String, self.delivery_request_callback)
         
     def is_stuck_callback(self, msg):
         print(msg)
         if msg.data:
             self.mode = Mode.IDLE
+
+    def delivery_request_callback(self, msg):
+        print(msg)
+        print(msg.data)
+        if msg.data == "" or msg.data == None:
+            self.deliv_flag = False
+            # TO DO:loop through and associate delivery requests with marker locations 
+        else:
+            self.deliv_flag = True
+        print(self.deliv_flag)
 
     def gazebo_callback(self, msg):
         pose = msg.pose[msg.name.index("turtlebot3_burger")]
