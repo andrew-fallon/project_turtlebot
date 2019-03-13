@@ -69,7 +69,7 @@ class Supervisor:
         self.waiting = 1 	# Used to keep track of waiting (0=disarmed, 1=armed, 2=waiting)
         self.init_state = 0	# Keeps track of initialization state
         self.state_publisher = rospy.Publisher('/state', String, queue_size=10)
-
+	self.pose_publisher = rospy.Publisher('/curr_pose', Pose2D, queue_size=10)
         # subscribers
         # stop sign detector
         rospy.Subscriber('/detector/stop_sign', DetectedObject, self.stop_sign_detected_callback)
