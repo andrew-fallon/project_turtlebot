@@ -23,6 +23,8 @@ class Explorer:
         self.explored = set()
         self.frontier = None
         self.frontier_pub = rospy.Publisher('/cmd_nav', Pose2D, queue_size=10)
+        self.goal = None
+        self.buffer_size = 5
         rospy.Subscriber('/map_metadata', MapMetaData, self.map_md_callback)
         rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
 
@@ -40,21 +42,20 @@ class Explorer:
                 self.occupancy_updated = True
 
     def ind2pos(self,ind):
-        x = (ind[0]-self.map_width/2.0)*self.occupancy.resolution
-        y = (ind[1]-self.map_height/2.0)*self.occupancy.resolution
+        x = ind[0]*self.occupancy.resolution + self.map_origin[0]
+        y = ind[1]*self.occupancy.resolution + self.map_origin[1]
         return (x,y)
 
     def pos2ind(self,pos):
         # input is tuple of x,y positions 
         p = self.occupancy.snap_to_grid(pos)
-        x_ind = int(p[0]/self.occupancy.resolution+self.map_width/2.0)
-        y_ind = int(p[1]/self.occupancy.resolution+self.map_height/2.0)
+        x_ind = (p[0] - self.map_origin[0])/self.occupancy.resolution
+        y_ind = (p[1] - self.map_origin[1])/self.occupancy.resolution
         return (x_ind,y_ind)
 
     def buildGrid(self):
         grid = np.zeros((self.map_width, self.map_height))
         for i in range(len(self.occupancy.probs)):
-            # convert i to (x,y)
             gy = int(i/self.map_width)
             gx = i % self.map_width
             grid[gx,gy] = self.occupancy.probs[i]
@@ -63,8 +64,14 @@ class Explorer:
     def findFrontier(self,grid,ind):
         x_ind, y_ind = np.where(grid==0)
         possibleLocations = set()
+        n = self.buffer_size
         for i in range(0,len(x_ind)):
-            possibleLocations.add((x_ind[i],y_ind[i]))
+            neighbor_grid = np.ones((2*n-1, 2*n-1))
+            for j in range(-n,n):
+                for k in range(-n,n):
+                    neighbor_grid[j,k] = grid[x_ind[i]+j,y_ind[i]+k]
+            if np.all(neighbor_grid == 0):
+                possibleLocations.add((x_ind[i],y_ind[i]))
 
         unexploredGrid = possibleLocations.difference(self.explored)
         self.explored = self.explored.union(unexploredGrid)
@@ -84,19 +91,31 @@ class Explorer:
 
     def loop(self):
         if self.occupancy:
-            # print type(self.occupancy.probs)
             (translation,rotation) = self.trans_listener.lookupTransform('/map', '/base_footprint', rospy.Time(0))
             x = translation[0]
             y = translation[1]
             robot_ind = self.pos2ind((x,y))
             robot_pos = self.ind2pos(robot_ind)
-            print 'real: ',x,y,' guess ',robot_pos[0],robot_pos[1]
             grid = self.buildGrid()
             if self.findFrontier(grid,robot_ind):
-                self.frontier_pub.publish(Pose2D(self.frontier[0],self.frontier[1],0.0))
                 print self.frontier
+                if self.goal is not None:
+                    distance_to_goal = ((x-self.goal[0])**2+(y-self.goal[1])**2)**0.5
+                    if distance_to_goal > 1:
+                        print "Navigating to frontier, no new frontier calculated"
+                    else:
+                        print "Setting goal as updated frontier"
+                        self.goal = self.frontier
+                else:
+                    print "Setting first frontier"
+                    self.goal = self.frontier
             else:
                 print "No frontier found"
+
+            try:
+                self.frontier_pub.publish(Pose2D(self.goal[0],self.goal[1],0.0))
+            except:
+                pass
 
     def run(self):
         rate = rospy.Rate(10) # 10 Hz
