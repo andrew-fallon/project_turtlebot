@@ -16,7 +16,11 @@ K3 = 0.8
 
 # tells the robot to stay still
 # if it doesn't get messages within that time period
+<<<<<<< HEAD
 TIMEOUT = np.inf
+=======
+TIMEOUT = 10
+>>>>>>> 6cd2d5e28dc763c0f680e08dc35fbfb1cc2a2c60
 
 # maximum velocity
 V_MAX = 0.2/2

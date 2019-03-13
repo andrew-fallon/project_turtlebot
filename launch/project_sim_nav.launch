@@ -11,7 +11,11 @@
   <rosparam param="use_tf">false</rosparam>
 
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
+<<<<<<< HEAD
     <arg name="world_name" value="$(find project_turtlebot)/world/project_city.world"/>
+=======
+    <arg name="world_name" value="$(find asl_turtlebot)/world/project_city.world"/>
+>>>>>>> 6cd2d5e28dc763c0f680e08dc35fbfb1cc2a2c60
     <arg name="paused" value="false"/>
     <arg name="use_sim_time" value="true"/>
     <arg name="debug" value="false"/>
@@ -60,6 +64,7 @@
     <param name="lasamplestep" value="0.005"/>
   </node>
   
+<<<<<<< HEAD
   <node pkg="project_turtlebot" type="state_viz.py" name="RViz_State" />
   <node pkg="project_turtlebot" type="supervisor_nav.py" name="turtlebot_supervisor" output="screen"/>
   <node pkg="project_turtlebot" type="navigator.py" name="turtlebot_navigator" />
@@ -69,4 +74,13 @@
   
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find project_turtlebot)/rviz/project_sim.rviz"/>
+=======
+
+  <node pkg="asl_turtlebot" type="navigator.py" name="turtlebot_navigator" />
+  <node pkg="asl_turtlebot" type="pose_controller.py" name="turtlebot_pose_controller" />
+  <node pkg="asl_turtlebot" type="cmd_nav_commander.py" name="cmd_nav_commander" />
+  <node pkg="asl_turtlebot" type="detector.py" name="turtlebot_detector" />
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find asl_turtlebot)/rviz/project_sim.rviz"/>
+>>>>>>> 6cd2d5e28dc763c0f680e08dc35fbfb1cc2a2c60
 </launch>

@@ -1,0 +1,19 @@
+<launch>
+
+
+  <!-- TO DO: FIX CONTROLLER/PARAMS -->
+  <rosparam param="sim">false</rosparam>
+  <rosparam param="map">true</rosparam>
+  <rosparam param="rviz">true</rosparam>
+  <rosparam param="use_tf">false</rosparam>
+  <node pkg="project_turtlebot" type="supervisor_nav.py" name="turtlebot_supervisor" output="screen"/>
+  <node pkg="project_turtlebot" type="pose_controller_nav.py" name="turtlebot_pose_controller" />
+  <node pkg="project_turtlebot" type="navigator.py" name="turtlebot_navigator" />
+  <node pkg="project_turtlebot" type="custom_viz.py" name="turtlebot_markers" />
+  <node pkg="project_turtlebot" type="store_locations.py" name="turtlebot_detected_locations" />
+  <node pkg="project_turtlebot" type="state_viz.py" name="RViz_State" />
+
+  <!--<node pkg="asl_turtlebot" type="detector.py" name="turtlebot_detector" />-->
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find project_turtlebot)/rviz/project_config.rviz"/>
+</launch>

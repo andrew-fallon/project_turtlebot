@@ -43,4 +43,8 @@ rate = rospy.Rate(10) # 10 Hz
 while not rospy.is_shutdown():
     bot_publisher.publish(turtlebot)
     rospy.Subscriber('/move_base_simple/goal', PoseStamped, rviz_goal_callback)
+<<<<<<< HEAD
     rate.sleep()     
+=======
+    rate.sleep()     
+>>>>>>> 6cd2d5e28dc763c0f680e08dc35fbfb1cc2a2c60

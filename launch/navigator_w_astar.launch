@@ -10,9 +10,14 @@
   <node pkg="project_turtlebot" type="pose_controller_nav.py" name="turtlebot_pose_controller" />
   <node pkg="project_turtlebot" type="navigator.py" name="turtlebot_navigator" />
   <node pkg="project_turtlebot" type="custom_viz.py" name="turtlebot_markers" />
+<<<<<<< HEAD
   <node pkg="project_turtlebot" type="store_locations.py" name="turtlebot_detected_locations" />
   <node pkg="project_turtlebot" type="state_viz.py" name="RViz_State" />
 
+=======
+  <node pkg="project_turtlebot" type="state_viz.py" name="turtlebot_state_markers" />
+  <node pkg="project_turtlebot" type="store_locations.py" name="turtlebot_detected_locations" />
+>>>>>>> 6cd2d5e28dc763c0f680e08dc35fbfb1cc2a2c60
   <!--<node pkg="asl_turtlebot" type="detector.py" name="turtlebot_detector" />-->
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find project_turtlebot)/rviz/project_config.rviz"/>

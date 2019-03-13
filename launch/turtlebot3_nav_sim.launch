@@ -64,6 +64,10 @@
   <node pkg="project_turtlebot" type="detector.py" name="turtlebot_detector" output="screen"/>  
   <node pkg="project_turtlebot" type="pose_controller_nav.py" name="turtlebot_pose_controller_nav" />
   <node pkg="project_turtlebot" type="navigator.py" name="turtlebot_navigator" />
+<<<<<<< HEAD
+=======
+  <node pkg="project_turtlebot" type="request_publisher.py" name="delivery_request_publisher" />
+>>>>>>> 6cd2d5e28dc763c0f680e08dc35fbfb1cc2a2c60
 
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find project_turtlebot)/rviz/nav.rviz"/>
