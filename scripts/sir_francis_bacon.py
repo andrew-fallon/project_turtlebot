@@ -119,7 +119,7 @@ class Supervisor:
 
     def dq_empty_callback(self, msg):
         self.dq_empty = msg.data
-        
+
     def done_exploring_callback(self, msg):
         if msg.data:
             self.mode = Mode.IDLE
@@ -404,7 +404,7 @@ class Supervisor:
         #   nav goal and then resumes the previous mode it was in
         elif self.mode == Mode.RESET:
             self.state_publisher.publish(String("RESET"))
-            rospy.sleep(1)
+            rospy.sleep(1.5)
             norm = ( (self.x - self.x_reset)**2 + (self.y - self.y_reset)**2 )**0.5
             if norm < POS_EPS:
                 self.mode = self.b4reset
