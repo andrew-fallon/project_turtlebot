@@ -9,6 +9,7 @@ from asl_turtlebot.msg import DetectedObject
 import tf
 import math
 from enum import Enum
+import numpy as np
 
 # if sim is True/using gazebo, therefore want to subscribe to /gazebo/model_states\
 # otherwise, they will use a TF lookup (hw2+)
@@ -39,6 +40,7 @@ class Mode(Enum):
     CROSS = 4
     NAV = 5
     MANUAL = 6
+    INITIAL = 7
 
 
 print "supervisor settings:\n"
@@ -53,7 +55,7 @@ class Supervisor:
         self.x = 0
         self.y = 0
         self.theta = 0
-        self.mode = Mode.IDLE
+        self.mode = Mode.INITIAL
         self.last_mode_printed = None
         # initialize delivery flag to false to start in explore mode:
         self.deliv_flag = False
@@ -65,8 +67,10 @@ class Supervisor:
         self.nav_goal_publisher = rospy.Publisher('/cmd_nav', Pose2D, queue_size=10)
         # command vel (used for idling)
         self.cmd_vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+        self.waiting = 1 	# Used to keep track of waiting (0=disarmed, 1=armed, 2=waiting)
+        self.init_state = 0	# Keeps track of initialization state
         self.state_publisher = rospy.Publisher('/state', String, queue_size=10)
-
+	self.pose_publisher = rospy.Publisher('/curr_pose', Pose2D, queue_size=10)
         # subscribers
         # stop sign detector
         rospy.Subscriber('/detector/stop_sign', DetectedObject, self.stop_sign_detected_callback)
@@ -234,6 +238,24 @@ class Supervisor:
 
         return (self.mode == Mode.CROSS and (rospy.get_rostime()-self.cross_start)>rospy.Duration.from_sec(CROSSING_TIME))
 
+    def delay(self, time):
+        """ delays for specified number of seconds (time must be integer) """
+        rate = rospy.Rate(1) # 1 Hz
+        for i in range(time):
+            rate.sleep() # Sleeps for 1/rate sec
+
+    def get_time(self):
+    	""" Gets current ROS time """
+    	self.time = rospy.get_rostime()
+
+    def wait(self, wait_time):
+    	if self.waiting == 1:	# If waiting armed
+    		self.waiting = 2	# Set wating mode
+    		self.start_time = rospy.get_rostime()
+    	if rospy.get_rostime() - self.start_time > rospy.Duration.from_sec(wait_time):
+    		self.waiting = 0	# Disarm waiting
+
+
     def loop(self):
         """ the main loop of the robot. At each iteration, depending on its
         mode (i.e. the finite state machine's state), if takes appropriate
@@ -319,9 +341,63 @@ class Supervisor:
                 self.nav_to_pose()
             self.state_publisher.publish("NAV")
 
+        elif self.mode == Mode.INITIAL:
+        	# Wait for startup
+			if self.init_state == 0:
+				self.wait(2)
+				if self.waiting == 0:
+					self.waiting = 1 		# Re-arm waiting
+					self.init_state = 1		# Switch to drive forward state
+
+			# Drive straight forward		
+			elif self.init_state == 1:
+				vel = Twist()
+				vel.linear.x = 0.15			# ** SPEED TO DRIVE FORWARD **
+				self.cmd_vel_publisher.publish(vel) # Send drive command
+				self.wait(2.0)				# ** TIME TO DRIVE FORWARD **
+				if self.waiting == 0:		# If waiting disarmed
+					self.stay_idle()		# Stop Moving
+					self.waiting = 1 		# Re-arm waiting
+					self.x_g = self.x
+					self.y_g = self.y
+					self.theta_g = self.theta + np.pi 	#Wrap to pi
+					if self.theta_g > np.pi:
+						self.theta_g = self.theta_g - 2*np.pi
+					self.init_state = 2		# Switch to turn state
+
+			# # Turn 180 degrees
+			# elif self.init_state == 2:
+			# 	vel = Twist()
+			# 	vel.angular.z = 1.0					# Turning speed
+			# 	self.cmd_vel_publisher.publish(vel)	# Start turning
+			# 	if self.close_to(self.x_g,self.y_g,self.theta_g):
+			# 		self.stay_idle			# Stop
+			# 		self.init_state = 3
+			# 		# Next pose
+			# 		dist = 0.25			# Distance to drive forward
+			# 		self.x_g = self.x + dist*math.cos(self.theta)
+			# 		self.y_g = self.y + dist*math.sin(self.theta)
+
+			# # Drive forward 1.2m
+			# elif self.init_state == 3:
+			# 	self.go_to_pose()
+			# 	if self.close_to(self.x_g,self.y_g,self.theta_g):
+			# 		self.stay_idle			# Stop
+			# 		self.init_state = 4
+
+			else:
+				self.mode = Mode.IDLE   # Switch to idle
+
+
         else:
             raise Exception('This mode is not supported: %s'
                 % str(self.mode))
+
+	curr_position = Pose2D()
+        curr_position.x = self.x
+        curr_position.y = self.y
+        curr_position.theta = self.theta
+        self.pose_publisher.publish(curr_position)
 
     def run(self):
         rate = rospy.Rate(10) # 10 Hz
