@@ -49,7 +49,6 @@ class freeTheTurtle:
             self.run_reset = True
         else:
             self.prev_mode = msg.data
-            self.run_reset = False
 
     def map_md_callback(self, msg):
         self.map_width = msg.width
