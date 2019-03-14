@@ -1,0 +1,185 @@
+#!/usr/bin/env python
+
+import rospy
+import numpy as np
+import tf
+from nav_msgs.msg import OccupancyGrid, MapMetaData
+from std_msgs.msg import Bool
+from grids import StochOccupancyGrid2D
+from geometry_msgs.msg import Pose2D
+
+
+
+class Explorer:
+
+    def __init__(self):
+        rospy.init_node('Frontier_Explorer', anonymous=True)
+        self.trans_listener = tf.TransformListener()
+        
+        # map parameters
+        self.map_width = 0
+        self.map_height = 0
+        self.map_resolution = 0
+        self.map_origin = [0,0]
+        self.map_probs = []
+        self.occupancy = None
+        self.occupancy_updated = False
+        self.explored = set()
+        self.Exploring = False
+
+        # Frontier parameters
+        self.frontier = None
+        self.goal = None
+        self.buffer_size = 7
+        self.HOME_THRESHOLD = .1
+        self.THRESHOLD = 0.25
+        self.home_pose = None
+        self.zone_radius = 0.5
+
+        # Flags
+        self.Home_Flag = False
+        self.going_home = False
+
+        # Publishers and subscribers
+        self.frontier_pub = rospy.Publisher('/expl_pose', Pose2D, queue_size=10)
+        self.end_exploration_pub = rospy.Publisher('/done_exploring', Bool, queue_size=10)
+        rospy.Subscriber('/map_metadata', MapMetaData, self.map_md_callback)
+        rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
+        rospy.Subscriber('/is_stuck', Bool, self.bad_goal_callback)
+        self.RosRate = 1
+
+
+    def map_md_callback(self, msg):
+        self.map_width = msg.width
+        self.map_height = msg.height
+        self.map_resolution = msg.resolution
+        self.map_origin = (msg.origin.position.x,msg.origin.position.y)
+
+    def map_callback(self,msg):
+            self.map_probs = msg.data
+            if self.map_width>0 and self.map_height>0 and len(self.map_probs)>0:
+                self.occupancy = StochOccupancyGrid2D(self.map_resolution, self.map_width, self.map_height,
+                                                      self.map_origin[0], self.map_origin[1], 8, self.map_probs)
+                self.occupancy_updated = True
+
+    def bad_goal_callback(self,msg):
+        if msg.data:
+            rospy.loginfo("Explorer: Adding bad goals to explored lsit")
+            self.explored.add(self.goal)
+
+    def ind2pos(self,ind):
+        x = ind[0]*self.occupancy.resolution + self.map_origin[0]
+        y = ind[1]*self.occupancy.resolution + self.map_origin[1]
+        return (x,y)
+
+    def pos2ind(self,pos):
+        # input is tuple of x,y positions 
+        p = self.occupancy.snap_to_grid(pos)
+        x_ind = (p[0] - self.map_origin[0])/self.occupancy.resolution
+        y_ind = (p[1] - self.map_origin[1])/self.occupancy.resolution
+        return (x_ind,y_ind)
+
+    def buildGrid(self):
+        grid = np.zeros((self.map_width, self.map_height))
+        for i in range(len(self.occupancy.probs)):
+            gy = int(i/self.map_width)
+            gx = i % self.map_width
+            grid[gx,gy] = self.occupancy.probs[i]
+        return grid
+
+    def findFrontier(self,grid,ind):
+        x_ind, y_ind = np.where(grid==0)
+        possibleLocations = set()
+        n = self.buffer_size
+        for i in range(0,len(x_ind)):
+            neighbor_grid = np.ones((2*n-1, 2*n-1))
+            for j in range(-n,n):
+                for k in range(-n,n):
+                    neighbor_grid[j,k] = grid[x_ind[i]+j,y_ind[i]+k]
+            if np.all(neighbor_grid == 0): # BAD GOALS LIST
+                possibleLocations.add((x_ind[i],y_ind[i]))
+
+        unexploredGrid = possibleLocations.difference(self.explored)
+        # if not self.Exploring:
+        self.explored = self.explored.union(unexploredGrid)
+
+        distances = []
+        for possible_ind in unexploredGrid:
+            x_bot_ind,y_bot_ind = ind
+            x_front_ind,y_front_ind = possible_ind
+            dist = ((x_bot_ind-x_front_ind)**2+(y_bot_ind-y_front_ind)**2)**0.5
+            distances.append(dist)
+
+        if not distances:
+            return False
+        else:
+            frontier_ind = list(unexploredGrid)[np.argmax(distances)]
+            self.frontier = self.ind2pos(frontier_ind)
+            return True
+
+    def PUBLISH(self):
+        self.frontier_pub.publish(Pose2D(self.goal[0],self.goal[1],0.0))
+
+    def loop(self):
+        if self.occupancy:
+            (translation,rotation) = self.trans_listener.lookupTransform('/map', '/base_footprint', rospy.Time(0))
+            x = translation[0]
+            y = translation[1]
+
+            # First time through, set home base
+            if not self.Home_Flag:
+                self.Home_Flag = True
+                self.home_pose = (x,y)
+                origin_ind_x,origin_ind_y = self.pos2ind(self.home_pose)
+                zone_pm = int(self.zone_radius*self.occupancy.resolution)
+                for i in range(-zone_pm,zone_pm+1):
+                    for j in range(-zone_pm,zone_pm+1):
+                        origin_zone = (origin_ind_x+i,origin_ind_y+j)
+                        self.explored.add(origin_zone)
+
+            # Get robot index in grid frame
+            robot_ind = self.pos2ind((x,y))
+            grid = self.buildGrid()
+            if self.findFrontier(grid,robot_ind):
+
+                # Publish the frontier if there is no goal
+                if self.goal is None:
+                    rospy.loginfo("Explorer: Setting a new goal pose")
+                    self.Exploring = True
+                    self.goal = self.frontier
+                    self.PUBLISH()
+                    return
+                else: # There is a goal, check distance to goal and if we are going home
+                    distance_to_goal = ((x-self.goal[0])**2+(y-self.goal[1])**2)**0.5
+                    if distance_to_goal < self.THRESHOLD or self.going_home:
+                        self.Exploring = False
+                        rospy.loginfo("Explorer: Updating goal pose")
+                        self.going_home = False
+                        self.goal = self.frontier
+                        self.PUBLISH()
+
+            else:
+                # try:
+                    distance_to_goal = ((x-self.goal[0])**2+(y-self.goal[1])**2)**0.5
+                    # rospy.loginfo("Explorer: Moving towards goal")
+                    if distance_to_goal < self.THRESHOLD:
+                    # No valid frontier at current goal, set goal as home state
+                        rospy.loginfo("Explorer: No vaild frontier, going home")
+                        self.going_home = True
+                        self.goal = self.home_pose
+                        self.PUBLISH()
+                        distance_to_home = ((x-self.goal[0])**2+(y-self.goal[1])**2)**0.5
+                        if distance_to_home < self.HOME_THRESHOLD:
+                            self.end_exploration_pub.publish(Bool(True))
+                # except:
+                #     rospy.loginfo("hmmmmm")
+
+
+    def run(self):
+        rate = rospy.Rate(self.RosRate) # Hz
+        while not rospy.is_shutdown():
+            self.loop()
+            rate.sleep()
+
+if __name__ == "__main__":
+    Explorer().run()
