@@ -392,11 +392,13 @@ class Supervisor:
 			raise Exception('This mode is not supported: %s'
 				% str(self.mode))
 
+
 		curr_position = Pose2D()
 		curr_position.x = self.x
 		curr_position.y = self.y
 		curr_position.theta = self.theta
 		self.pose_publisher.publish(curr_position)
+
 
 	def run(self):
 		rate = rospy.Rate(10) # 10 Hz
