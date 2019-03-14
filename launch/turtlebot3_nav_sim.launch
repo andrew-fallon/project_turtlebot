@@ -60,12 +60,14 @@
   <rosparam param="map">true</rosparam>
   <rosparam param="rviz">true</rosparam>
   <rosparam param="use_tf">false</rosparam>
-  <node pkg="project_turtlebot" type="supervisor_nav.py" name="turtlebot_supervisor_nav" output="screen"/>
+  <node pkg="project_turtlebot" type="sir_francis_bacon.py" name="turtlebot_supervisor_nav" output="screen"/>
   <node pkg="project_turtlebot" type="detector.py" name="turtlebot_detector" output="screen"/>  
   <node pkg="project_turtlebot" type="pose_controller_nav.py" name="turtlebot_pose_controller_nav" />
   <node pkg="project_turtlebot" type="navigator.py" name="turtlebot_navigator" />
   <node pkg="project_turtlebot" type="request_publisher.py" name="delivery_request_publisher" />
-
+  <node pkg="project_turtlebot" type="store_locations.py" name="turtlebot_detected_locations" />
+  <node pkg="project_turtlebot" type="delivery.py" name="Delivery_Mode" />
+  <node pkg="project_turtlebot" type="state_viz.py" name="turtlebot_state" />
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find project_turtlebot)/rviz/nav.rviz"/>
 
