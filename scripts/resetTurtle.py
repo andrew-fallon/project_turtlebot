@@ -6,10 +6,11 @@ import tf
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 from grids import StochOccupancyGrid2D
 from geometry_msgs.msg import Pose2D
+from std_msgs.msg import String
 
 MIN_DIST = 4    # move 4 cells minimum (~0.2 m)
 MAX_DIST = 8    # move 8 cells max (~0.4 m)
-
+use_gazebo = rospy.get_param("sim")
 
 class freeTheTurtle:
 
