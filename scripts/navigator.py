@@ -158,8 +158,6 @@ class Navigator:
         # if close to the goal, use the pose_controller instead
         if self.close_to_end_location():
             rospy.loginfo("Navigator: Close to nav goal using pose controller")
-            print(np.linalg.norm(np.array([self.x, self.y]) - np.array([self.x_g, self.y_g])))
-            print(self.theta - self.theta_g)
             pose_g_msg = Pose2D()
             pose_g_msg.x = self.x_g
             pose_g_msg.y = self.y_g
@@ -231,6 +229,7 @@ class Navigator:
             # if stuck for some number of iterations, abort and send mode to reset
             elif self.stuck_iter > STUCK_THRESH:
                 self.nav_stuck_pub.publish(Bool(True))
+                self.stuck_iter = 0
                 self.V_prev = 0
                 return
 
@@ -253,7 +252,7 @@ class Navigator:
             # if currently not moving, first line up with the plan
             if self.V_prev == 0:
                 theta_init = np.arctan2(self.current_plan[1][1]-self.current_plan[0][1],self.current_plan[1][0]-self.current_plan[0][0])
-                theta_err = wrapToPi(theta_init-self.theta)
+                theta_err = theta_init-self.theta
                 if abs(theta_err)>THETA_START_THRESH:
                     cmd_msg = Twist()
                     cmd_msg.linear.x = 0
