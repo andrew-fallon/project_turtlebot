@@ -10,6 +10,10 @@ from geometry_msgs.msg import Pose2D
 from getFrontier import getfrontier
 from visualization_msgs.msg import Marker, MarkerArray
 
+# threshold at which we consider the robot at a location
+POS_EPS = .1    # meters
+THETA_EPS = .15  # radians
+
 class Delivery:
 
 	def __init__(self):
@@ -78,7 +82,7 @@ class Delivery:
 				self.theta_g = euler[2]
 
 			# check if x y coord is close enough, if so then update queue and update goal location
-			if ((self.x-self.x_g)**2+(self.y-self.y_g)**2)**0.5 < .25:
+			if abs(self.x_g-self.x)<POS_EPS and abs(self.y_g-self.y)<POS_EPS and abs(self.theta_g-self.theta)<THETA_EPS < .25:
 				self.deliv_queue.pop(0)
 				rospy.loginfo('Was sufficiently close to current goal, updated queue and going to next delivery request')
 				
