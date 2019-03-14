@@ -30,7 +30,7 @@ class Explorer:
         # Frontier parameters
         self.frontier = None
         self.goal = None
-        self.buffer_size = 7
+        self.buffer_size = 5
         self.HOME_THRESHOLD = 0.1
         self.THRESHOLD = 0.25
         self.home = None
