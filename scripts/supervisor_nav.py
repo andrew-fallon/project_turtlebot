@@ -78,7 +78,7 @@ class Supervisor:
         rospy.Subscriber('/nav_pose', Pose2D, self.nav_pose_callback)
         # if using gazebo, we have access to perfect state
         if use_gazebo:
-        rospy.Subscriber('/gazebo/model_states', ModelStates, self.gazebo_callback)
+            rospy.Subscriber('/gazebo/model_states', ModelStates, self.gazebo_callback)
         # we can subscribe to nav goal click
         rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.rviz_goal_callback)
         rospy.Subscriber('/is_stuck', Bool, self.is_stuck_callback)
@@ -341,6 +341,7 @@ class Supervisor:
             self.state_publisher.publish("NAV")
 
         elif self.mode == Mode.INITIAL:
+	    		self.state_publisher.publish("INITIAL")
         	# Wait for startup
 			if self.init_state == 0:
 				self.wait(2)
