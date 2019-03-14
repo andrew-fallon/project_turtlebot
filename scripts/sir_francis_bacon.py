@@ -113,10 +113,16 @@ class Supervisor:
         rospy.Subscriber('/done_exploring', Bool, self.done_exploring_callback)
         rospy.Subscriber('/deli_pose', Pose2D, self.deli_goal_callback)
         rospy.Subscriber('/expl_pose', Pose2D, self.expl_goal_callback)
+        rospy.Subscriber('/reset_pose', Pose2D, self.reset_goal_callback)
 
     def done_exploring_callback(self, msg):
         if msg.data:
             self.mode = Mode.IDLE
+
+    def reset_goal_callback(self, msg):
+        self.x_reset = msg.x
+        self.y_reset = msg.y
+        self.theta_reset = msg.theta
 
     def deli_goal_callback(self, msg):
         self.x_deli = msg.x
@@ -132,6 +138,7 @@ class Supervisor:
     def is_stuck_callback(self, msg):
         if msg.data and (self.mode == Mode.EXPL or self.mode == Mode.DELI or self.mode == Mode.MANUAL):
             rospy.logwarn("Cogswell got stuck, resetting...")
+            self.b4reset = self.mode
             self.mode = Mode.RESET
 
     def delivery_request_callback(self, msg):
@@ -396,9 +403,12 @@ class Supervisor:
         # RESET mode runs every time there is an error within navigator.py, it commands and new, nearby 
         #   nav goal and then resumes the previous mode it was in
         elif self.mode == Mode.RESET:
-            self.init_reset()
             self.state_publisher.publish("RESET")
-            rospy.logwarn("Attemping to reset Cogswell, may need new goal pose...")
+            if self.close_to(self.x_reset,self.y_reset,self.theta_reset):
+                self.mode = self.b4reset
+            else:
+                self.nav_to_turtle_goal(self.x_reset, self.y_reset, self.theta_reset)
+            rospy.logwarn("Attemping to reset Cogswell, will return to previous mode shortly...")
 
         else:
             raise Exception('This mode is not supported: %s' % str(self.mode))

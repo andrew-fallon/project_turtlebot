@@ -36,7 +36,7 @@ class freeTheTurtle:
         rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
         rospy.Subscriber('/state', String, self.state_callback)
 
-        self.pose_pub = rospy.Publisher('/cmd_pose', Pose2D, queue_size=10)
+        self.pose_pub = rospy.Publisher('/reset_pose', Pose2D, queue_size=10)
 
         # if using gazebo, then subscribe to model states
         if use_gazebo:
