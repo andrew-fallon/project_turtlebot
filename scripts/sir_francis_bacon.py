@@ -96,6 +96,7 @@ class Supervisor:
 
         self.state_publisher = rospy.Publisher('/state', String, queue_size=10)
         self.pose_publisher = rospy.Publisher('/curr_pose', Pose2D, queue_size=10)
+        self.start_nav = rospy.Publisher('/start_exploration', Bool, queue_size=10)
 
         # subscribers
         # stop sign detector
@@ -337,6 +338,7 @@ class Supervisor:
                     self.init_state = 2     # Switch to turn state
 
             else:
+                self.start_nav.publish(Bool(True))
                 self.mode = Mode.EXPL   # Switch to explore! yay!
 
         # IDLE runs during the following conditions:
@@ -407,6 +409,7 @@ class Supervisor:
             rospy.sleep(1.5)
             norm = ( (self.x - self.x_reset)**2 + (self.y - self.y_reset)**2 )**0.5
             if norm < POS_EPS:
+                rospy.loginfo("RESET STATE REACHED")
                 self.stay_idle()    # command zero velocity before switching
                 self.mode = self.b4reset
             else:

@@ -15,6 +15,8 @@ class Explorer:
         rospy.init_node('Frontier_Explorer', anonymous=True)
         self.trans_listener = tf.TransformListener()
         
+        self.StartExploring = False
+
         # map parameters
         self.map_width = 0.0
         self.map_height = 0.0
@@ -33,7 +35,7 @@ class Explorer:
         self.HOME_THRESHOLD = 0.1
         self.THRESHOLD = 0.25
         self.home = None
-        self.zone_radius = 0.5
+        self.zone_radius = 5
 
         # Flags
         self.home_flag = False
@@ -45,7 +47,7 @@ class Explorer:
         rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
         rospy.Subscriber('/is_stuck', Bool, self.bad_goal_callback)
         rospy.Subscriber('/breadcrumb_marker', Marker, self.trail_callback)
-        rospy.sleep(25)
+        rospy.Subscriber('/start_exploration', Bool, self.start_exploration_callback)
         self.RosRate = 1
 
     def trail_callback(self, msg):
@@ -55,6 +57,7 @@ class Explorer:
             if msg.points[i] is not None:
                 p = (msg.points[i].x, msg.points[i].y)
                 self.removeRegionFromSearch(p)
+
 
     def map_md_callback(self, msg):
         self.map_width = msg.width
@@ -73,6 +76,10 @@ class Explorer:
         if msg.data:
             rospy.loginfo("Explorer: Adding bad goals to explored list")
             self.explored.add(self.goal)
+
+    def start_exploration_callback(self,msg):
+        if msg.data:
+            self.StartExploring = True
 
     def ind2pos(self,ind):
         x = ind[0]*self.occupancy.resolution + self.map_origin[0]
@@ -168,6 +175,9 @@ class Explorer:
 
     def loop(self):
         # If map does not exist, break
+        if not self.StartExploring:
+            return
+
         if not self.occupancy:
             return
         # Account for blind spot

@@ -6,7 +6,6 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /TF1/Frames1
       Splitter Ratio: 0.5
     Tree Height: 336
   - Class: rviz/Selection
@@ -27,7 +26,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: PointCloud2
+    SyncSource: ""
 Visualization Manager:
   Class: ""
   Displays:
@@ -96,17 +95,25 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        base_camera:
+          Value: false
         base_footprint:
           Value: false
-        camera:
+        base_link:
+          Value: false
+        base_scan:
+          Value: false
+        caster_back_link:
+          Value: false
+        imu_link:
           Value: false
         map:
           Value: true
         odom:
           Value: false
-        raspicam:
+        wheel_left_link:
           Value: false
-        velodyne:
+        wheel_right_link:
           Value: false
       Marker Scale: 1
       Name: TF
@@ -117,11 +124,19 @@ Visualization Manager:
         map:
           odom:
             base_footprint:
-              raspicam:
-                camera:
+              base_link:
+                base_camera:
                   {}
-              velodyne:
-                {}
+                base_scan:
+                  {}
+                caster_back_link:
+                  {}
+                imu_link:
+                  {}
+                wheel_left_link:
+                  {}
+                wheel_right_link:
+                  {}
       Update Interval: 0
       Value: true
     - Alpha: 0.699999988
@@ -139,7 +154,7 @@ Visualization Manager:
       Marker Topic: /goal_marker
       Name: Marker
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -163,7 +178,7 @@ Visualization Manager:
       Marker Topic: /bottle_markers
       Name: MarkerArray
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -246,16 +261,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 7.94325018
+      Distance: 8.86475658
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -1.52424741
-        Y: 1.00349331
-        Z: -2.1995163
+        X: 3.43566203
+        Y: 1.77737975
+        Z: -2.15109801
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
