@@ -208,6 +208,8 @@ class Navigator:
         # if close to the goal, use the pose_controller instead
         if self.close_to_end_location():
             rospy.loginfo("Navigator: Close to nav goal using pose controller")
+            print(np.linalg.norm(np.array([self.x, self.y]) - np.array([self.x_g, self.y_g])))
+            print(self.theta - self.theta_g)
             pose_g_msg = Pose2D()
             pose_g_msg.x = self.x_g
             pose_g_msg.y = self.y_g
@@ -300,8 +302,8 @@ class Navigator:
                 if abs(theta_err)>THETA_START_THRESH:
                     cmd_msg = Twist()
                     cmd_msg.linear.x = 0
-                    cmd_msg.angular.z = THETA_START_P * theta_err
-                    self.nav_vel_pub.publish(cmd_msg)
+                    om_i = THETA_START_P * theta_err
+                    cmd_msg.angular.z =  np.sign(om_i)*min(W_MAX, np.abs(om_i))
                     return
 
             # compute the "current" time along the path execution
@@ -372,6 +374,7 @@ class Navigator:
         cmd_msg.linear.x = cmd_x_dot
         cmd_msg.angular.z = cmd_theta_dot
         self.nav_vel_pub.publish(cmd_msg)
+        return
 
 
 if __name__ == '__main__':

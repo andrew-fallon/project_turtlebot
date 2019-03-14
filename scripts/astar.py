@@ -14,6 +14,8 @@ class AStar(object):
         self.x_goal = self.snap_to_grid(x_goal)    # goal state
         self.init_err = False                      # true when x_init has no neighbors
         self.goal_err = False                      # true when x_goal has no neighbors
+        self.iter = 0
+        self.max_iter = 2500
 
         self.closed_set = []    # the set containing the states that have been visited
         self.open_set = []      # the set containing the states that are condidate for future expension
@@ -140,7 +142,8 @@ class AStar(object):
             self.goal_err = True
             return False
 
-        while len(self.open_set)>0:
+        while len(self.open_set)>0 and self.iter < self.max_iter:
+            self.iter += 1
             # TODO: fill me in!
             # Pick the best option from tne open set, add it to closed set and remove from open set
             # If it is the goal, end the loop and build the path!
@@ -165,7 +168,7 @@ class AStar(object):
                 self.came_from[neghibor] = x_cur
                 self.g_score[neghibor] = g_prime
                 self.f_score[neghibor] = g_prime + self.distance(neghibor,self.x_goal)
-        rospy.loginfo('you are stuck')
+        self.iter = 0
         return False
 
 # A 2D state space grid with a set of rectangular obstacles. The grid is fully deterministic
