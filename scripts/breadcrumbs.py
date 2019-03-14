@@ -11,8 +11,10 @@ class Breadcrumbs:
 		rospy.init_node('breadcrumbs', anonymous=True)
 
 		#Breadcrumb variables
-		self.rate = 10
-		self.dist_thr = 0.25
+		self.rate = 10				# Node rate (Hz)
+		self.dist_thr = 0.20		# Minimum distance between points
+		self.max_points = 30			# Maximum number of breadcrumbs
+		self.marker_size = 0.025	# Breadcrumb size
 
 		self.pub = rospy.Publisher('breadcrumb_marker', Marker, queue_size=10)
 		self.trans_listener = tf.TransformListener()
@@ -35,23 +37,26 @@ class Breadcrumbs:
 			pass
 
 		if self.last_x:
-			dist = ((self.x-self.last_x)**2.0 + (self.y-self.last_y)**2.0)**0.5
+			dist = ((self.x-self.last_x)**2.0 + (self.y-self.last_y)**2.0)**0.5		# Compute distance from previous point
 			if dist > self.dist_thr:
 				self.points.append(Point(self.x, self.y, 0.1))
 				self.last_x = self.x
 				self.last_y = self.y
 		else:
-			print 'ping', self.last_x
 			self.points.append(Point(self.x, self.y, 0.1))
 			self.last_x = self.x
 			self.last_y = self.y
+
+		# Remove oldest poin if array is too long
+		if len(self.points) > self.max_points:
+			self.points.pop(0)
 
 		markers = Marker(
 			type=Marker.POINTS,
 			id=0,
 			lifetime=rospy.Duration(0),
 			pose=Pose(Point(0.0, 0.0, 0.0), Quaternion(0, 0, 0, 1)),
-			scale=Vector3(0.02, 0.02, 0.02),
+			scale=Vector3(self.marker_size, self.marker_size, self.marker_size),
 			header=Header(frame_id='/map'),
 			color=ColorRGBA(1.0, 1.0, 0.1, 1.0),
 			points=self.points)
