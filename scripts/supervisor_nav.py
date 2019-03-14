@@ -392,7 +392,7 @@ class Supervisor:
             raise Exception('This mode is not supported: %s'
                 % str(self.mode))
 
-	curr_position = Pose2D()
+        curr_position = Pose2D()
         curr_position.x = self.x
         curr_position.y = self.y
         curr_position.theta = self.theta
