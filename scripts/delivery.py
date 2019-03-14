@@ -33,6 +33,9 @@ class Delivery:
 		rospy.Subscriber('/delivery_request', String, self.delivery_request_callback)
 		rospy.Subscriber('/curr_pose', Pose2D, self.curr_pose_callback)
 		rospy.Subscriber('bottle_markers', MarkerArray, self.bottle_markers_callback)
+		rospy.Subscriber('apple_markers', MarkerArray, self.apple_markers_callback)
+		rospy.Subscriber('banana_markers', MarkerArray, self.banana_markers_callback)
+		rospy.Subscriber('broccoli_markers', MarkerArray, self.broccoli_markers_callback)
 
 
 	def delivery_request_callback(self, msg):
@@ -41,6 +44,15 @@ class Delivery:
 
 	def bottle_markers_callback(self, msg):
 		self.bottle_markers = msg
+
+	def apple_markers_callback(self, msg):
+		self.apple_markers = msg
+
+	def banana_markers_callback(self, msg):
+		self.banana_markers = msg
+
+	def broccoli_markers_callback(self, msg):
+		self.broccoli_markers = msg
 
 	def curr_pose_callback(self, msg):
 		self.x = msg.x
@@ -62,13 +74,13 @@ class Delivery:
 				m_arrays = self.bottle_markers
 				rospy.loginfo('Current goal is bottle location')
 			elif self.deliv_queue[0] == 'apple': 
-				m_arrays = rospy.wait_for_message("apple_markers", MarkerArray)
+				m_arrays = self.apple_markers
 				rospy.loginfo('Current goal is apple location')
 			elif self.deliv_queue[0] == 'banana': 
-				m_arrays = rospy.wait_for_message("banana_markers", MarkerArray)
+				m_arrays = self.banana_markers
 				rospy.loginfo('Current goal is banana location')
 			elif self.deliv_queue[0] == 'broccoli': 
-				m_arrays = rospy.wait_for_message("broccoli_markers", MarkerArray)
+				m_arrays = self.broccoli_markers
 				rospy.loginfo('Current goal is broccoli location')
 			else:
 				rospy.logwarn("The delivery request is unknown, going home")
@@ -104,13 +116,13 @@ class Delivery:
 						m_arrays = self.bottle_markers
 						rospy.loginfo('Updated goal is bottle location')
 					elif self.deliv_queue[0] == 'apple': 
-						m_arrays = rospy.wait_for_message("apple_markers", MarkerArray)
+						m_arrays = self.apple_markers
 						rospy.loginfo('Current goal is apple location')
 					elif self.deliv_queue[0] == 'banana': 
-						m_arrays = rospy.wait_for_message("banana_markers", MarkerArray)
+						m_arrays = self.banana_markers
 						rospy.loginfo('Current goal is banana location')
 					elif self.deliv_queue[0] == 'broccoli': 
-						m_arrays = rospy.wait_for_message("broccoli_markers", MarkerArray)
+						m_arrays = self.broccoli_markers
 						rospy.loginfo('Current goal is broccoli location')
 					else:
 						rospy.logwarn("The updated delivery request is unknown, going home")
