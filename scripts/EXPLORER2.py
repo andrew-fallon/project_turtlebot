@@ -8,8 +8,6 @@ from std_msgs.msg import Bool
 from grids import StochOccupancyGrid2D
 from geometry_msgs.msg import Pose2D
 
-
-
 class Explorer:
 
     def __init__(self):
@@ -30,7 +28,7 @@ class Explorer:
         # Frontier parameters
         self.frontier = None
         self.goal = None
-        self.buffer_size = 7
+        self.buffer_size = 5
         self.HOME_THRESHOLD = 0.1
         self.THRESHOLD = 0.25
         self.home = None
@@ -46,7 +44,6 @@ class Explorer:
         rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
         rospy.Subscriber('/is_stuck', Bool, self.bad_goal_callback)
         self.RosRate = 1
-
 
     def map_md_callback(self, msg):
         self.map_width = msg.width
@@ -129,13 +126,8 @@ class Explorer:
         x,y = self.getCurrentLocation()
         return ((x-self.goal[0])**2+(y-self.goal[1])**2)**0.5
 
-    def removeHomeFromSearch(self):
-        # First time through, set home base
-        if not self.home_flag:
-            x,y = self.getCurrentLocation()
-            self.home_flag = True
-            self.home = (x,y)
-            origin_ind_x,origin_ind_y = self.pos2ind(self.home)
+    def removeRegionFromSearch(self,p):
+            origin_ind_x,origin_ind_y = self.pos2ind(p)
             zone_pm = int(self.zone_radius*self.occupancy.resolution)
             for i in range(-zone_pm,zone_pm+1):
                 for j in range(-zone_pm,zone_pm+1):
@@ -153,7 +145,7 @@ class Explorer:
             self.goal = self.frontier
             rospy.loginfo("Explorer: New goal defined")
             self.PUBLISH()
-
+            self.removeRegionFromSearch(self.goal)
         # NO frontier, go back to home
         else:
             rospy.loginfo("Explorer: Sending turtle home")
@@ -168,7 +160,11 @@ class Explorer:
         if not self.occupancy:
             return
         # Account for blind spot
-        self.removeHomeFromSearch()
+        if not self.home_flag:
+            x,y = self.getCurrentLocation()
+            self.home_flag = True
+            self.home = (x,y)
+            self.removeRegionFromSearch(self.home)
         # Navigating to frontier - DO NOT calculate a new frontier
         if self.exploring:
             # Check if close enough to the goal
@@ -179,56 +175,6 @@ class Explorer:
             # Find a new frontier if it exists
             rospy.loginfo("Explorer: Searching for new frontier")
             self.searchForFrontier()
-
-        # if self.occupancy and self.not_exploring:
-        #     (translation,rotation) = self.trans_listener.lookupTransform('/map', '/base_footprint', rospy.Time(0))
-        #     x = translation[0]
-        #     y = translation[1]
-
-        #     # First time through, set home base
-        #     if not self.Home_Flag:
-        #         self.Home_Flag = True
-        #         self.home_pose = (x,y)
-        #         origin_ind_x,origin_ind_y = self.pos2ind(self.home_pose)
-        #         zone_pm = int(self.zone_radius*self.occupancy.resolution)
-        #         for i in range(-zone_pm,zone_pm+1):
-        #             for j in range(-zone_pm,zone_pm+1):
-        #                 origin_zone = (origin_ind_x+i,origin_ind_y+j)
-        # #                 self.explored.add(origin_zone)
-
-        #     # Get robot index in grid frame
-        #     robot_ind = self.pos2ind((x,y))
-        #     grid = self.buildGrid()
-        # #     if self.findFrontier(grid,robot_ind):
-
-        #         # Publish the frontier if there is no goal
-        #         if self.goal is None:
-        #             rospy.loginfo("Explorer: Setting a new goal pose")
-        #             self.not_exploring = False
-        #             self.goal = self.frontier
-        #             self.PUBLISH()
-        #         else: # There is a goal, check distance to goal and if we are going home
-        #             distance_to_goal = ((x-self.goal[0])**2+(y-self.goal[1])**2)**0.5
-        #             if distance_to_goal < self.THRESHOLD or self.going_home:
-        #                 self.not_exploring = True
-        #                 rospy.loginfo("Explorer: Updating goal pose")
-        #                 self.going_home = False
-        #                 self.goal = self.frontier
-        #                 self.PUBLISH()
-        #     else:
-        #         # try:
-        #             distance_to_goal = ((x-self.goal[0])**2+(y-self.goal[1])**2)**0.5
-        #             # rospy.loginfo("Explorer: Moving towards goal")
-        #             if distance_to_goal < self.THRESHOLD:
-        #             # No valid frontier at current goal, set goal as home state
-        #                 rospy.loginfo("Explorer: No vaild frontier, going home")
-        #                 self.going_home = True
-        #                 self.goal = self.home_pose
-        #                 self.PUBLISH()
-        #                 distance_to_home = ((x-self.goal[0])**2+(y-self.goal[1])**2)**0.5
-        #                 if distance_to_home < self.HOME_THRESHOLD:
-        #                     self.end_exploration_pub.publish(Bool(True))
-
 
     def run(self):
         rate = rospy.Rate(self.RosRate) # Hz
