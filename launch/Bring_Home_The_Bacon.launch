@@ -9,7 +9,12 @@
   <node pkg="project_turtlebot" type="detector.py" name="turtlebot_detector" output="screen"/>  
   <node pkg="project_turtlebot" type="pose_controller_nav.py" name="turtlebot_pose_controller_nav" />
   <node pkg="project_turtlebot" type="navigator.py" name="turtlebot_navigator" output="screen"/>
+
   <node pkg="project_turtlebot" type="EXPLORER2.py" name="turtlebot_frontier" output="screen"/>
+
+  <node pkg="project_turtlebot" type="delivery.py" name="delivery" />
+  <node pkg="project_turtlebot" type="request_publisher.py" name="req_publisher" />
+  <node pkg="project_turtlebot" type="store_locations.py" name="store_location" />
 
   <node pkg="project_turtlebot" type="custom_viz.py" name="turtlebot_viz" />
   <node pkg="project_turtlebot" type="state_viz.py" name="turtlebot_state_viz" />
