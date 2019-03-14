@@ -11,6 +11,9 @@ import math
 from enum import Enum
 import numpy as np
 
+# check later if explore script is updated
+from explore import Explorer
+
 # if sim is True/using gazebo, therefore want to subscribe to /gazebo/model_states\
 # otherwise, they will use a TF lookup (hw2+)
 use_gazebo = rospy.get_param("sim")
@@ -63,20 +66,24 @@ class Supervisor:
         self.last_mode_printed = None
         self.waiting = 1    # Used to keep track of waiting (0=disarmed, 1=armed, 2=waiting)
         self.init_state = 0 # Keeps track of initialization state
+        self.b4stop = self.modes    # used in CROSS mode logic
+
+        # home state
         self.x_home = 0
         self.y_home = 0
         self.theta_home = 0
+        # current delivery goal
         self.x_deli = None
         self.y_deli = None
         self.theta_deli = None
+        # current exploration goal
         self.x_expl = None
         self.y_expl = None
         self.theta_expl = None
-        self.b4stop = self.mode
-
-        # initialize delivery flag to false to start in explore mode:
-        self.deliv_flag = False
-        self.deliv_queue = []
+        # reset goal
+        self.x_reset = None
+        self.y_reset = None
+        self.theta_reset = None
 
         self.trans_listener = tf.TransformListener()
         # command pose for controller
@@ -128,14 +135,7 @@ class Supervisor:
             self.mode = Mode.RESET
 
     def delivery_request_callback(self, msg):
-        if msg.data == None:
-            self.deliv_flag = False
-        else:
-            self.deliv_flag = True
-            self.mode = Mode.DELI
-            self.deliv_queue.extend(msg.data.split(","))
-        print(self.deliv_queue)
-        print(self.deliv_flag)
+        self.mode = Mode.DELI
 
     def gazebo_callback(self, msg):
         pose = msg.pose[msg.name.index("turtlebot3_burger")]
@@ -168,9 +168,6 @@ class Supervisor:
             self.theta_g = euler[2]
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             pass
-        # if a 2d nav goal is set then delivery mode is turned off and the delivery queue is reset
-        self.deliv_flag = False
-        self.deliv_queue = []
         self.mode = Mode.MANUAL
 
     def nav_pose_callback(self, msg):
@@ -199,13 +196,13 @@ class Supervisor:
 
         self.nav_goal_publisher.publish(nav_g_msg)
 
-    def go_to_pose(self):
+    def go_to_pose(self, x, y, theta):
         """ sends the current desired pose to the pose controller """
 
         pose_g_msg = Pose2D()
-        pose_g_msg.x = self.x_g
-        pose_g_msg.y = self.y_g
-        pose_g_msg.theta = self.theta_g
+        pose_g_msg.x = x
+        pose_g_msg.y = y
+        pose_g_msg.theta = theta
 
         self.pose_goal_publisher.publish(pose_g_msg)
 
@@ -218,6 +215,15 @@ class Supervisor:
         nav_g_msg.theta = self.theta_g
 
         self.nav_goal_publisher.publish(nav_g_msg)
+
+    def nav_to_home(self):
+        nav_g_msg = Pose2D()
+        nav_g_msg.x = self.x_g
+        nav_g_msg.y = self.y_g
+        nav_g_msg.theta = self.theta_g
+
+        self.nav_goal_publisher.publish(nav_g_msg)
+
 
     def stay_idle(self):
         """ sends zero velocity to stay put """
@@ -290,8 +296,13 @@ class Supervisor:
             rospy.loginfo("Current Mode: %s", self.mode)
             self.last_mode_printed = self.mode
 
-        # checks wich mode it is in and acts accordingly
-        if self.mode == Mode.INITIAL:
+        ################################################
+        # SIR FRANCIS BACON STATE MACHINE
+        ################################################
+
+        # INIT only runs when the robot is booted up
+        if self.mode == Mode.INIT:
+            self.state_publisher.publish("INIT")
             # Wait for startup
             if self.init_state == 0:
                 self.wait(INIT_DELAY)
@@ -318,19 +329,35 @@ class Supervisor:
             else:
                 self.mode = Mode.EXPL   # Switch to explore! yay!
 
+        # IDLE runs during the following conditions:
+        #       - stopped at stop sign
+        #       - reached rviz goal state
+        #       - done exploring and waiting for commands
+        #       - reached home after running delivery mode
         elif self.mode == Mode.IDLE:
             self.state_publisher.publish("IDLE")
             # send zero velocity
             self.stay_idle()
 
+        # EXPL runs only once, directly after the init mode
         elif self.mode == Mode.EXPL:
             self.state_publisher.publish("EXPL")
             self.nav_to_turtle_goal(self.x_expl, self.y_expl, self.theta_expl)
 
+        # DELI mode runs every time a new delivery input is received and terminates after reaching home
         elif self.mode == Mode.DELI:
             self.state_publisher.publish("DELI")
-            self.nav_to_turtle_goal(self.x_deli, self.y_deli, self.theta_deli)
+            empty_q = wait_for_message('/dq_empty', Bool)
+            if not empty_q.data:
+                self.nav_to_turtle_goal(self.x_deli, self.y_deli, self.theta_deli)
+            else:
+                if self.close_to(self.x_home,self.y_home,self.theta_home):
+                    self.mode = Mode.IDLE
+                else:
+                    # go home
+                    self.nav_to_turtle_goal(self.x_home, self.y_home, self.theta_home)
 
+        # STOP mode runs every time a stop sign is detected within a specified range
         elif self.mode == Mode.STOP:
             self.state_publisher.publish("STOP")
             # at a stop sign
@@ -339,6 +366,7 @@ class Supervisor:
             else:
                 self.stay_idle()
 
+        # CROSS mode runs directly after STOP and resumes the state that was running before STOP
         elif self.mode == Mode.CROSS:
             self.state_publisher.publish("CROSS")
             # crossing an intersection
@@ -346,14 +374,20 @@ class Supervisor:
                 self.mode = self.b4stop
             else:
                 if self.b4stop == Mode.DELI:
-                    self.nav_to_turtle_goal(self.x_deli, self.y_deli, self.theta_deli)
+                    if not wait_for_message('/dq_empty', Bool).data:
+                        self.nav_to_turtle_goal(self.x_deli, self.y_deli, self.theta_deli)
+                    else:
+                        self.nav_to_turtle_goal(self.x_home, self.y_home, self.theta_home)
                 elif self.b4stop == Mode.EXPL:
                     self.nav_to_turtle_goal(self.x_expl, self.y_expl, self.theta_expl)
                 elif self.b4stop == Mode.MANUAL:
                     self.nav_to_turtle_goal(self.x_g, self.y_g, self.theta_g)
+                elif self.b4stop == Mode.RESET:
+                    self.nav_to_turtle_goal(self.x_reset, self.y_reset, self.theta_reset)
                 else:
                     rospy.logwarn('WHAT IS HAPPENING!')
 
+        # MANUAL mode runs every time a 2D nav goal is received from rviz
         elif self.mode == Mode.MANUAL:
             self.state_publisher.publish("MANUAL")
             if self.close_to(self.x_g,self.y_g,self.theta_g):
@@ -361,7 +395,10 @@ class Supervisor:
             else:
                 self.nav_to_turtle_goal(self.x_g, self.y_g, self.theta_g)
 
+        # RESET mode runs every time there is an error within navigator.py, it commands and new, nearby 
+        #   nav goal and then resumes the previous mode it was in
         elif self.mode == Mode.RESET:
+            self.init_reset()
             self.state_publisher.publish("RESET")
             rospy.logwarn("Attemping to reset Cogswell, may need new goal pose...")
 
