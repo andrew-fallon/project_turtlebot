@@ -307,7 +307,7 @@ class Supervisor:
 
         # INIT only runs when the robot is booted up
         if self.mode == Mode.INIT:
-            self.state_publisher.publish("INIT")
+            self.state_publisher.publish(String("INIT"))
             # Wait for startup
             if self.init_state == 0:
                 self.wait(INIT_DELAY)
@@ -340,18 +340,18 @@ class Supervisor:
         #       - done exploring and waiting for commands
         #       - reached home after running delivery mode
         elif self.mode == Mode.IDLE:
-            self.state_publisher.publish("IDLE")
+            self.state_publisher.publish(String("IDLE"))
             # send zero velocity
             self.stay_idle()
 
         # EXPL runs only once, directly after the init mode
         elif self.mode == Mode.EXPL:
-            self.state_publisher.publish("EXPL")
+            self.state_publisher.publish(String("EXPL"))
             self.nav_to_turtle_goal(self.x_expl, self.y_expl, self.theta_expl)
 
         # DELI mode runs every time a new delivery input is received and terminates after reaching home
         elif self.mode == Mode.DELI:
-            self.state_publisher.publish("DELI")
+            self.state_publisher.publish(String("DELI"))
             empty_q = wait_for_message('/dq_empty', Bool)
             if not empty_q.data:
                 self.nav_to_turtle_goal(self.x_deli, self.y_deli, self.theta_deli)
@@ -360,7 +360,7 @@ class Supervisor:
 
         # STOP mode runs every time a stop sign is detected within a specified range
         elif self.mode == Mode.STOP:
-            self.state_publisher.publish("STOP")
+            self.state_publisher.publish(String("STOP"))
             # at a stop sign
             if self.has_stopped():
                 self.init_crossing()
@@ -369,7 +369,7 @@ class Supervisor:
 
         # CROSS mode runs directly after STOP and resumes the state that was running before STOP
         elif self.mode == Mode.CROSS:
-            self.state_publisher.publish("CROSS")
+            self.state_publisher.publish(String("CROSS"))
             # crossing an intersection
             if self.has_crossed():
                 self.mode = self.b4stop
@@ -400,7 +400,8 @@ class Supervisor:
         #   nav goal and then resumes the previous mode it was in
         elif self.mode == Mode.RESET:
             self.state_publisher.publish(String("RESET"))
-            rospy.sleep(1)
+            rospy.sleep(0.5)
+            print self.x_reset
             if self.close_to(self.x_reset,self.y_reset,self.theta_reset):
                 self.mode = self.b4reset
             else:
