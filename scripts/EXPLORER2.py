@@ -74,8 +74,9 @@ class Explorer:
 
     def bad_goal_callback(self,msg):
         if msg.data:
-            rospy.loginfo("Explorer: Adding bad goals to explored list")
+            rospy.loginfo("Explorer: Goal not reachable, search for new goal")
             self.explored.add(self.goal)
+            self.searchForFrontier()
 
     def start_exploration_callback(self,msg):
         if msg.data:
