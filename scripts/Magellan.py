@@ -4,6 +4,7 @@ import rospy
 import numpy as np
 import tf
 from nav_msgs.msg import OccupancyGrid, MapMetaData
+from std_msgs.msg import String
 from grids import StochOccupancyGrid2D
 from geometry_msgs.msg import Pose2D
 from getFrontier import getfrontier
@@ -26,10 +27,16 @@ class Explorer:
         self.MapData = None
         self.front_msg = Pose2D()
         self.goal_pose = None
+        self.home_pose = None
+        self.bad_goals = []
+        self.Flag_Home_Base = False
+        self.new_goal_flag = False
+        self.sending_home = False
 
         self.frontier_pub = rospy.Publisher('/nav_pose', Pose2D, queue_size=10)
         rospy.Subscriber('/map_metadata', MapMetaData, self.map_md_callback)
         rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
+        rospy.Subscriber('/new_goal_requested', String, self.help_callback)
 
     def map_md_callback(self, msg):
         self.map_width = msg.width
@@ -44,6 +51,16 @@ class Explorer:
             self.occupancy = StochOccupancyGrid2D(self.map_resolution, self.map_width, self.map_height,
                                                   self.map_origin[0], self.map_origin[1], 8, self.map_probs)
             self.occupancy_updated = True
+
+    def help_callback(self,msg):
+        HELP = msg
+        rospy.loginfo("Help callback")
+        if self.send_home:
+            rospy.logwarn("No path home.. kick and try again?")
+        else:
+            bad_goal_tuple = (self.goal_pose[0],self.goal_pose[1])
+            self.bad_goals.append(bad_goal_tuple)
+            self.new_goal_flag = True
 
     def ind2pos(self,ind):
         # x = (ind[0]-self.map_width/2.0)*self.occupancy.resolution
@@ -104,9 +121,13 @@ class Explorer:
             x = translation[0]
             y = translation[1]
 
-            if not self.occupancy.is_free((x,y)):
-                rospy.logwarn('Explorer: X init not free, should kick the turtle')
-                return
+            if not self.Flag_Home_Base:
+                self.Flag_Home_Base = True
+                self.home_pose = (x,y,0)
+
+            # if not self.occupancy.is_free((x,y)):
+            #     rospy.logwarn('Explorer: X init not free, should kick the turtle. Check with navigator')
+            #     # return
 
             # print type(self.occupancy.probs)
             PossibleLocations = getfrontier(self.MapData)
@@ -114,7 +135,8 @@ class Explorer:
             distances = []
             Centroid = None
             for location in PossibleLocations:
-                if self.occupancy.is_free(location):
+                location_tuple = (location[0],location[1])
+                if self.occupancy.is_free(location) and location_tuple not in self.bad_goals:
                     # print "Location is free: ",location
                     FreeLocations.append(location)
                     dist = ((location[0]-x)**2+(location[1]-y)**2)**0.5
@@ -124,20 +146,39 @@ class Explorer:
             else:
                 Centroid = FreeLocations[np.argmin(distances)]
 
+            if self.new_goal_flag:
+                self.goal_pose = None
+                self.new_goal_flag = False
+                rospy.logwarn("Explorer: New goal requested. Getting unstuck")
+
+            if self.sending_home:
+                rospy.loginfo("Explorer: Turtle is going home")
+                return
+
             if self.goal_pose is None and Centroid is not None:
                 print "Setting new goal!",Centroid
                 print "Goal free? ",self.occupancy.is_free(Centroid)
                 self.goal_pose = Centroid
                 self.front_msg = Pose2D(Centroid[0],Centroid[1],0.0)
+                self.frontier_pub.publish(self.front_msg)
             elif self.goal_pose is None and Centroid is None:
-                rospy.loginfo('Explorer: Map fully explored!')
+                rospy.loginfo('Explorer: Map fully explored! Sending turtle home')
+                self.send_home = Pose2D(self.home_pose[0],self.home_pose[1],0.0)
+                self.frontier_pub.publish(self.send_home)
+                self.senging_home = True
                 return
             elif not self.occupancy.is_free(self.goal_pose):
                 rospy.logwarn("Explorer: Goal is occupied, pick a new frontier")
                 self.goal_pose = None
                 return
             else:
-                print"No new goal, currently going to: ",self.goal_pose
+                print"No new goal, currently going to: ",self.goal_pose," and obeying supervisor"
+
+            if ((x-self.goal_pose[0])**2+(y-self.goal_pose[1])**2)**0.5 < .25:
+                print "At frontier, resetting goal pose to none"
+                self.goal_pose = None
+
+            # self.frontier_pub.publish(self.front_msg)
 
             # robot_ind = self.pos2ind((x,y))
             # # print 'robot ind ',robot_ind
@@ -153,11 +194,7 @@ class Explorer:
             # else:
             #     print "No new frontier found"
 
-            if ((x-self.goal_pose[0])**2+(y-self.goal_pose[1])**2)**0.5 < .25:
-                print "At frontier, resetting goal pose to none"
-                self.goal_pose = None
 
-            self.frontier_pub.publish(self.front_msg)
 
     def run(self):
         rate = rospy.Rate(10) # 10 Hz
