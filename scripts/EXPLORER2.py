@@ -3,10 +3,11 @@
 import rospy
 import numpy as np
 import tf
+from visualization_msgs.msg import Marker
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 from std_msgs.msg import Bool
 from grids import StochOccupancyGrid2D
-from geometry_msgs.msg import Pose2D
+from geometry_msgs.msg import Pose2D, Point
 
 class Explorer:
 
@@ -43,7 +44,13 @@ class Explorer:
         rospy.Subscriber('/map_metadata', MapMetaData, self.map_md_callback)
         rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
         rospy.Subscriber('/is_stuck', Bool, self.bad_goal_callback)
+        rospy.Subscriber('/breadcrumb_marker', Marker, self.trail_callback)
         self.RosRate = 1
+
+    def trail_callback(self, msg):
+        for i in range(0,len(msg.points)):
+            p = (msg.points[i].x, msg.points[i].y)
+            self.removeRegionFromSearch(p)
 
     def map_md_callback(self, msg):
         self.map_width = msg.width
