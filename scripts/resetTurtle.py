@@ -33,7 +33,7 @@ class freeTheTurtle:
         self.x_reset = 0
         self.y_reset = 0
         self.theta_reset = 0
-        self.buffer_size = 3    # 0.05 m for every grid cell
+        self.buffer_size = 4    # 0.05 m for every grid cell
         rospy.Subscriber('/map_metadata', MapMetaData, self.map_md_callback)
         rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
         rospy.Subscriber('/state', String, self.state_callback)
@@ -121,7 +121,7 @@ class freeTheTurtle:
             reset_pose.x = self.x_reset
             reset_pose.y = self.y_reset
             reset_pose.theta = self.theta_reset
-            print "made new reset pose"
+            rospy.logwarn("Reset pose initiated, will return to previous mode shortly...")
             self.run_reset = False
             return reset_pose
 
