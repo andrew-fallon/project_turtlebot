@@ -117,6 +117,7 @@ class Supervisor:
         rospy.Subscriber('/expl_pose', Pose2D, self.expl_goal_callback)
         rospy.Subscriber('/reset_pose', Pose2D, self.reset_goal_callback)
         rospy.Subscriber('/dq_empty', Bool, self.dq_empty_callback)
+        rospy.Subscriber('/start_exploration', Bool, self.start_exp_callback)
 
     def dq_empty_callback(self, msg):
         self.dq_empty = msg.data
@@ -140,6 +141,9 @@ class Supervisor:
         self.y_expl = msg.y
         self.theta_expl = msg.theta
 
+    def start_exp_callback(self, msg):
+        if msg.data:
+            self.mode = Mode.EXPL
     # send to RESET mode if robot cannot overcome NAV errors        
     def is_stuck_callback(self, msg):
         if msg.data:

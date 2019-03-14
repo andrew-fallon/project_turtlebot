@@ -35,7 +35,7 @@ class Explorer:
         self.HOME_THRESHOLD = 0.1
         self.THRESHOLD = 0.25
         self.home = None
-        self.zone_radius = 5
+        self.zone_radius = 8
 
         # Flags
         self.home_flag = False
@@ -80,6 +80,7 @@ class Explorer:
     def start_exploration_callback(self,msg):
         if msg.data:
             self.StartExploring = True
+            rospy.loginfo("Explorer: Exploration initialized!")
 
     def ind2pos(self,ind):
         x = ind[0]*self.occupancy.resolution + self.map_origin[0]
