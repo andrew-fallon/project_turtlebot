@@ -225,12 +225,11 @@ class Supervisor:
         self.nav_goal_publisher.publish(nav_g_msg)
 
     def nav_to_home(self):
-        nav_g_msg = Pose2D()
-        nav_g_msg.x = self.x_g
-        nav_g_msg.y = self.y_g
-        nav_g_msg.theta = self.theta_g
-
-        self.nav_goal_publisher.publish(nav_g_msg)
+        if self.close_to(self.x_home,self.y_home,self.theta_home):
+            self.mode = Mode.IDLE
+        else:
+            # go home
+            self.nav_to_turtle_goal(self.x_home, self.y_home, self.theta_home)
 
 
     def stay_idle(self):
@@ -357,11 +356,7 @@ class Supervisor:
             if not empty_q.data:
                 self.nav_to_turtle_goal(self.x_deli, self.y_deli, self.theta_deli)
             else:
-                if self.close_to(self.x_home,self.y_home,self.theta_home):
-                    self.mode = Mode.IDLE
-                else:
-                    # go home
-                    self.nav_to_turtle_goal(self.x_home, self.y_home, self.theta_home)
+                self.nav_to_home()
 
         # STOP mode runs every time a stop sign is detected within a specified range
         elif self.mode == Mode.STOP:
@@ -383,7 +378,7 @@ class Supervisor:
                     if not wait_for_message('/dq_empty', Bool).data:
                         self.nav_to_turtle_goal(self.x_deli, self.y_deli, self.theta_deli)
                     else:
-                        self.nav_to_turtle_goal(self.x_home, self.y_home, self.theta_home)
+                        self.nav_to_home()
                 elif self.b4stop == Mode.EXPL:
                     self.nav_to_turtle_goal(self.x_expl, self.y_expl, self.theta_expl)
                 elif self.b4stop == Mode.MANUAL:
