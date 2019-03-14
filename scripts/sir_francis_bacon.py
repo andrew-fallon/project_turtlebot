@@ -196,12 +196,14 @@ class Supervisor:
     def nav_to_turtle_goal(self, x, y, theta):
         """
         """
-        nav_g_msg = Pose2D()
-        nav_g_msg.x = x
-        nav_g_msg.y = y
-        nav_g_msg.theta = theta
-
-        self.nav_goal_publisher.publish(nav_g_msg)
+        try:
+            nav_g_msg = Pose2D()
+            nav_g_msg.x = x
+            nav_g_msg.y = y
+            nav_g_msg.theta = theta
+            self.nav_goal_publisher.publish(nav_g_msg)
+        except:
+            pass
 
     def go_to_pose(self, x, y, theta):
         """ sends the current desired pose to the pose controller """
