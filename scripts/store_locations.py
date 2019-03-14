@@ -17,27 +17,27 @@ class Locations:
 		self.bottle_pub = rospy.Publisher('bottle_markers', MarkerArray, queue_size=10)
 		self.apple_pub = rospy.Publisher('apple_markers', MarkerArray, queue_size=10)
 		self.banana_pub = rospy.Publisher('banana_markers', MarkerArray, queue_size=10)
-		self.brocoli_pub = rospy.Publisher('brocoli_markers', MarkerArray, queue_size=10)
+		self.broccoli_pub = rospy.Publisher('broccoli_markers', MarkerArray, queue_size=10)
 
-		self.detection_thresh = 0.5
-		self.known_names = ["stop_sign", "bottle", "apple", "banana", "brocoli"]
+		self.detection_thresh = 1.0
+		self.known_names = ["stop_sign", "bottle", "apple", "banana", "broccoli"]
 
 		self.stop_array = MarkerArray()
 		self.bottle_array = MarkerArray()
 		self.apple_array = MarkerArray()
 		self.banana_array = MarkerArray()
-		self.brocoli_array = MarkerArray()
+		self.broccoli_array = MarkerArray()
 
 		self.stop_id = 0
 		self.bottle_id = 0
 		self.apple_id = 0
 		self.banana_id = 0
-		self.brocoli_id = 0
+		self.broccoli_id = 0
 		self.stop_color = ColorRGBA(1.0,0.0,0.0,1.0)
 		self.bottle_color = ColorRGBA(0.0,0.0,1.0,1.0)
 		self.apple_color = ColorRGBA(0.5,0.0,0.0,1.0)
 		self.banana_color = ColorRGBA(1.0,1.0,1.0,1.0)
-		self.brocoli_color = ColorRGBA(0.5,0.6,1.0,1.0)
+		self.broccoli_color = ColorRGBA(0.5,0.6,1.0,1.0)
 		rospy.Subscriber('/detector/objects', DetectedObjectList, self.detected_callback)
 
 	def buildMarkers(self, array, id_count, color):
@@ -79,7 +79,7 @@ class Locations:
 				elif object_name == self.known_names[3]:
 					self.banana_array, self.banana_id = self.buildMarkers(self.banana_array, self.banana_id, self.banana_color)
 				elif object_name == self.known_names[3]:
-					self.brocoli_array, self.banana_id = self.buildMarkers(self.brocoli_array, self.brocoli_id, self.brocoli_color)
+					self.broccoli_array, self.banana_id = self.buildMarkers(self.broccoli_array, self.broccoli_id, self.broccoli_color)
 
 
 
@@ -88,7 +88,7 @@ class Locations:
 		self.bottle_pub.publish(self.bottle_array)
 		self.apple_pub.publish(self.apple_array)
 		self.banana_pub.publish(self.banana_array)
-		self.brocoli_pub.publish(self.brocoli_array)
+		self.broccoli_pub.publish(self.broccoli_array)
 
 
 	def run(self):
