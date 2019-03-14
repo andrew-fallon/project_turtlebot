@@ -65,7 +65,8 @@
   <node pkg="project_turtlebot" type="pose_controller_nav.py" name="turtlebot_pose_controller_nav" />
   <node pkg="project_turtlebot" type="navigator.py" name="turtlebot_navigator" />
   <node pkg="project_turtlebot" type="request_publisher.py" name="delivery_request_publisher" />
-
+  <node pkg="project_turtlebot" type="store_locations.py" name="turtlebot_detected_locations" />
+  <node pkg="project_turtlebot" type="delivery.py" name="Delivery_Mode" />
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find project_turtlebot)/rviz/nav.rviz"/>
 
