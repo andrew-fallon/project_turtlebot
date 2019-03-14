@@ -45,7 +45,7 @@ class Explorer:
         rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
         rospy.Subscriber('/is_stuck', Bool, self.bad_goal_callback)
         rospy.Subscriber('/breadcrumb_marker', Marker, self.trail_callback)
-        rospy.sleep(8)
+        rospy.sleep(25)
         self.RosRate = 1
 
     def trail_callback(self, msg):
@@ -139,7 +139,7 @@ class Explorer:
 
     def removeRegionFromSearch(self,p):
             origin_ind_x,origin_ind_y = self.pos2ind(p)
-            zone_pm = int(self.zone_radius*self.occupancy.resolution)
+            zone_pm = int(self.zone_radius/self.occupancy.resolution)
             for i in range(-zone_pm,zone_pm+1):
                 for j in range(-zone_pm,zone_pm+1):
                     origin_zone = (origin_ind_x+i,origin_ind_y+j)
