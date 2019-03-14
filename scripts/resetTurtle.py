@@ -33,7 +33,7 @@ class freeTheTurtle:
         self.x_reset = 0
         self.y_reset = 0
         self.theta_reset = 0
-        self.buffer_size = 3    # 0.05 m for every grid cell
+        self.buffer_size = 4    # 0.05 m for every grid cell
         rospy.Subscriber('/map_metadata', MapMetaData, self.map_md_callback)
         rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
         rospy.Subscriber('/state', String, self.state_callback)
