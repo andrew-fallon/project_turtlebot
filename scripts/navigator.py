@@ -258,6 +258,7 @@ class Navigator:
                     cmd_msg.linear.x = 0
                     om_i = THETA_START_P * theta_err
                     cmd_msg.angular.z =  np.sign(om_i)*min(W_MAX, np.abs(om_i))
+                    self.nav_vel_pub.publish(cmd_msg)
                     return
 
             # compute the "current" time along the path execution

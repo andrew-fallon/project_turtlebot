@@ -66,7 +66,7 @@ class Supervisor:
         self.last_mode_printed = None
         self.waiting = 1    # Used to keep track of waiting (0=disarmed, 1=armed, 2=waiting)
         self.init_state = 0 # Keeps track of initialization state
-        self.b4stop = self.modes    # used in CROSS mode logic
+        self.b4stop = None   # used in CROSS mode logic
 
         # home state
         self.x_home = 0
@@ -112,7 +112,7 @@ class Supervisor:
         rospy.Subscriber('/delivery_request', String, self.delivery_request_callback)
         rospy.Subscriber('/done_exploring', Bool, self.done_exploring_callback)
         rospy.Subscriber('/deli_pose', Pose2D, self.deli_goal_callback)
-        ropsy.Subscriber('/expl_pose', Pose2D, self.expl_goal_callback)
+        rospy.Subscriber('/expl_pose', Pose2D, self.expl_goal_callback)
 
     def done_exploring_callback(self, msg):
         if msg.data:
@@ -274,13 +274,11 @@ class Supervisor:
         if rospy.get_rostime() - self.start_time > rospy.Duration.from_sec(wait_time):
             self.waiting = 0    # Disarm waiting
 
-
     def loop(self):
         """ the main loop of the robot. At each iteration, depending on its
         mode (i.e. the finite state machine's state), if takes appropriate
         actions. This function shouldn't return anything """
-
-    
+ 
         if not use_gazebo:
             try:
                 origin_frame = "/map" if mapping else "/odom"
