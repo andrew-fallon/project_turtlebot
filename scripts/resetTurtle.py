@@ -3,6 +3,7 @@
 import rospy
 import numpy as np
 import tf
+from std_msgs.msg import Float32MultiArray, String, Int16, Bool
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 from grids import StochOccupancyGrid2D
 from geometry_msgs.msg import Pose2D
@@ -38,28 +39,10 @@ class freeTheTurtle:
 
         self.pose_pub = rospy.Publisher('/reset_pose', Pose2D, queue_size=10)
 
-        # if using gazebo, then subscribe to model states
-        if use_gazebo:
-            rospy.Subscriber('/gazebo/model_states', ModelStates, self.gazebo_callback)
- 
         self.trans_listener = tf.TransformListener()
 
-
-    def gazebo_callback(self, data):
-        if "turtlebot3_burger" in data.name:
-            pose = data.pose[data.name.index("turtlebot3_burger")]
-            twist = data.twist[data.name.index("turtlebot3_burger")]
-            self.x = pose.position.x
-            self.y = pose.position.y
-            quaternion = (
-                pose.orientation.x,
-                pose.orientation.y,
-                pose.orientation.z,
-                pose.orientation.w)
-            euler = tf.transformations.euler_from_quaternion(quaternion)
-            self.theta = euler[2]
-
     def state_callback(self, msg):
+        print msg
         if msg.data == "RESET" and (self.prev_mode != "RESET"):
             self.prev_mode = "RESET"
             self.run_reset = True
@@ -103,24 +86,23 @@ class freeTheTurtle:
         if not self.run_reset:
             return None
         else:
-            if not use_gazebo:
-                try:
-                    origin_frame = "/map" if mapping else "/odom"
-                    (translation,rotation) = self.trans_listener.lookupTransform(origin_frame, '/base_footprint', rospy.Time(0))
-                    self.x = translation[0]
-                    self.y = translation[1]
-                    euler = tf.transformations.euler_from_quaternion(rotation)
-                    self.theta = euler[2]
-                except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-                    pass
+            try:
+                origin_frame = "/map"
+                (translation,rotation) = self.trans_listener.lookupTransform(origin_frame, '/base_footprint', rospy.Time(0))
+                self.x = translation[0]
+                self.y = translation[1]
+                euler = tf.transformations.euler_from_quaternion(rotation)
+                self.theta = euler[2]
+            except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+                pass
 
 
             # build possible locations for reset
             grid = self.buildGrid()
-            curr_grid_state = pos2ind((self.x, self.y))
+            curr_grid_state = self.pos2ind((self.x, self.y))
 
             x_ind, y_ind = np.where(grid==0)
-            possibleLocations = set()
+            possibleLocations = []
             n = self.buffer_size
             for i in range(0,len(x_ind)):
                 neighbor_grid = np.ones((2*n-1, 2*n-1))
@@ -129,15 +111,18 @@ class freeTheTurtle:
                     for k in range(-n,n):
                         neighbor_grid[j,k] = grid[x_ind[i]+j,y_ind[i]+k]
                 if np.all(neighbor_grid == 0) and (norm < MAX_DIST and norm > MIN_DIST):
-                    possibleLocations.add((x_ind[i],y_ind[i]))
+                    possibleLocations.append((x_ind[i],y_ind[i]))
 
             # randomly chose a new location
             newGridState = possibleLocations[np.random.randint(0, len(possibleLocations))]
-            self.x_reset, self.y_reset = ind2pos(newGridState)
+            self.x_reset, self.y_reset = self.ind2pos(newGridState)
+            self.theta_reset = 90*(np.pi/180)
             reset_pose = Pose2D()
             reset_pose.x = self.x_reset
             reset_pose.y = self.y_reset
             reset_pose.theta = self.theta_reset
+            print "made new reset pose"
+            self.run_reset = False
             return reset_pose
 
     def run(self):

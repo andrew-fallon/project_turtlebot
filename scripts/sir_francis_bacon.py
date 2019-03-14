@@ -136,7 +136,7 @@ class Supervisor:
 
     # send to RESET mode if robot cannot overcome NAV errors        
     def is_stuck_callback(self, msg):
-        if msg.data and (self.mode == Mode.EXPL or self.mode == Mode.DELI or self.mode == Mode.MANUAL):
+        if msg.data:
             rospy.logwarn("Cogswell got stuck, resetting...")
             self.b4reset = self.mode
             self.mode = Mode.RESET
@@ -196,14 +196,13 @@ class Supervisor:
     def nav_to_turtle_goal(self, x, y, theta):
         """
         """
-        try:
+        if x is not None:
             nav_g_msg = Pose2D()
             nav_g_msg.x = x
             nav_g_msg.y = y
             nav_g_msg.theta = theta
             self.nav_goal_publisher.publish(nav_g_msg)
-        except:
-            pass
+
 
     def go_to_pose(self, x, y, theta):
         """ sends the current desired pose to the pose controller """
@@ -396,7 +395,7 @@ class Supervisor:
 
         # MANUAL mode runs every time a 2D nav goal is received from rviz
         elif self.mode == Mode.MANUAL:
-            self.state_publisher.publish("MANUAL")
+            self.state_publisher.publish(String("MANUAL"))
             if self.close_to(self.x_g,self.y_g,self.theta_g):
                 self.mode = Mode.IDLE
             else:
@@ -405,11 +404,12 @@ class Supervisor:
         # RESET mode runs every time there is an error within navigator.py, it commands and new, nearby 
         #   nav goal and then resumes the previous mode it was in
         elif self.mode == Mode.RESET:
-            self.state_publisher.publish("RESET")
+            self.state_publisher.publish(String("RESET"))
+            rospy.sleep(1)
             if self.close_to(self.x_reset,self.y_reset,self.theta_reset):
                 self.mode = self.b4reset
             else:
-                self.nav_to_turtle_goal(self.x_reset, self.y_reset, self.theta_reset)
+                self.go_to_pose(self.x_reset, self.y_reset, self.theta_reset)
             rospy.logwarn("Attemping to reset Cogswell, will return to previous mode shortly...")
 
         else:
