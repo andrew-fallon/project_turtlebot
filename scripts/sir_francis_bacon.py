@@ -67,6 +67,7 @@ class Supervisor:
         self.waiting = 1    # Used to keep track of waiting (0=disarmed, 1=armed, 2=waiting)
         self.init_state = 0 # Keeps track of initialization state
         self.b4stop = None   # used in CROSS mode logic
+        self.dq_empty = True
 
         # home state
         self.x_home = 0
@@ -114,7 +115,11 @@ class Supervisor:
         rospy.Subscriber('/deli_pose', Pose2D, self.deli_goal_callback)
         rospy.Subscriber('/expl_pose', Pose2D, self.expl_goal_callback)
         rospy.Subscriber('/reset_pose', Pose2D, self.reset_goal_callback)
+        rospy.Subscriber('/dq_empty', Bool, self.dq_empty_callback)
 
+    def dq_empty_callback(self, msg):
+        self.dq_empty = msg.data
+        
     def done_exploring_callback(self, msg):
         if msg.data:
             self.mode = Mode.IDLE
@@ -352,8 +357,7 @@ class Supervisor:
         # DELI mode runs every time a new delivery input is received and terminates after reaching home
         elif self.mode == Mode.DELI:
             self.state_publisher.publish(String("DELI"))
-            empty_q = wait_for_message('/dq_empty', Bool)
-            if not empty_q.data:
+            if not self.dq_empty:
                 self.nav_to_turtle_goal(self.x_deli, self.y_deli, self.theta_deli)
             else:
                 self.nav_to_home()
@@ -375,7 +379,7 @@ class Supervisor:
                 self.mode = self.b4stop
             else:
                 if self.b4stop == Mode.DELI:
-                    if not wait_for_message('/dq_empty', Bool).data:
+                    if not self.dq_empty:
                         self.nav_to_turtle_goal(self.x_deli, self.y_deli, self.theta_deli)
                     else:
                         self.nav_to_home()
@@ -401,7 +405,8 @@ class Supervisor:
         elif self.mode == Mode.RESET:
             self.state_publisher.publish(String("RESET"))
             rospy.sleep(1)
-            if self.close_to(self.x_reset,self.y_reset,self.theta_reset):
+            norm = ( (self.x - self.x_reset)**2 + (self.y - self.y_reset)**2 )**0.5
+            if norm < POS_EPS:
                 self.mode = self.b4reset
             else:
                 self.go_to_pose(self.x_reset, self.y_reset, self.theta_reset)
