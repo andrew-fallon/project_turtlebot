@@ -121,7 +121,7 @@ class freeTheTurtle:
             reset_pose.x = self.x_reset
             reset_pose.y = self.y_reset
             reset_pose.theta = self.theta_reset
-            print "made new reset pose"
+            rospy.logwarn("Reset pose initiated, will return to previous mode shortly...")
             self.run_reset = False
             return reset_pose
 

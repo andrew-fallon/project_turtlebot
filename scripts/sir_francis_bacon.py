@@ -400,13 +400,11 @@ class Supervisor:
         #   nav goal and then resumes the previous mode it was in
         elif self.mode == Mode.RESET:
             self.state_publisher.publish(String("RESET"))
-            rospy.sleep(0.5)
-            print self.x_reset
+            rospy.sleep(1)
             if self.close_to(self.x_reset,self.y_reset,self.theta_reset):
                 self.mode = self.b4reset
             else:
                 self.go_to_pose(self.x_reset, self.y_reset, self.theta_reset)
-            rospy.logwarn("Attemping to reset Cogswell, will return to previous mode shortly...")
 
         else:
             raise Exception('This mode is not supported: %s' % str(self.mode))
