@@ -19,7 +19,7 @@
   <node pkg="project_turtlebot" type="custom_viz.py" name="turtlebot_viz" />
   <node pkg="project_turtlebot" type="state_viz.py" name="turtlebot_state_viz" />
   <node pkg="project_turtlebot" type="breadcrumbs.py" name="breadcrumbs" />
-  <!-- <node pkg="project_turtlebot" type="resetTurtle.py" name="reset_turtle" /> -->
+  <node pkg="project_turtlebot" type="resetTurtle.py" name="reset_turtle" />
 
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find project_turtlebot)/rviz/project_config.rviz"/>
