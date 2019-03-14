@@ -22,7 +22,7 @@ TIMEOUT = 10
 V_MAX = 0.2/2
 
 # maximim angular velocity
-W_MAX = 1/2
+W_MAX = 1.0/2
 
 # if sim is True/using gazebo, therefore want to subscribe to /gazebo/model_states\
 # otherwise, they will use a TF lookup (hw2+)
@@ -124,7 +124,7 @@ class PoseController:
             th_rot = self.theta-self.theta_g 
             rho = linalg.norm(rel_coords) 
 
-            if (rho < 0.1) & (th_rot < 0.1):
+            if (rho < 0.09) & (np.absolute(th_rot) < 0.1):
                 rospy.loginfo("Close to goal: commanding zero controls")
                 self.x_g = None
                 self.y_g = None
@@ -133,17 +133,16 @@ class PoseController:
                 cmd_theta_dot = 0
             else:
                 ang = np.arctan2(rel_coords_rot[1],rel_coords_rot[0])+np.pi 
-                angs = wrapToPi(np.array([ang-th_rot, ang])) 
-                alpha = angs[0] 
+                angs = wrapToPi(np.array([ang-th_rot, ang]))    
+                alpha = angs[0]
                 delta = angs[1] 
 
                 V = K1*rho*np.cos(alpha) 
-                om = K2*alpha + K1*np.sinc(2*alpha/np.pi)*(alpha+K3*delta) 
+                om = K2*alpha + K1*np.sinc(alpha/np.pi)*(alpha+K3*delta) 
 
                 # Apply saturation limits
                 cmd_x_dot = np.sign(V)*min(V_MAX, np.abs(V))
                 cmd_theta_dot = np.sign(om)*min(W_MAX, np.abs(om))
-
 
             ######### END OF YOUR CODE ##########
 
