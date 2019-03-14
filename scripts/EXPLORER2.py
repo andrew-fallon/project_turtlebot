@@ -150,11 +150,13 @@ class Explorer:
         # Frontier exists, publish new goal and start exploring
         if self.findFrontier(grid,robot_ind):
             self.exploring = True
-            self.goal = self.Frontier
+            self.goal = self.frontier
+            rospy.loginfo("Explorer: New goal defined")
             self.PUBLISH()
 
         # NO frontier, go back to home
         else:
+            rospy.loginfo("Explorer: Sending turtle home")
             self.goal = self.home
             self.exploring = False
             self.PUBLISH()
@@ -175,6 +177,7 @@ class Explorer:
         # Done exploring i.e. close enough to goal pose - calculate a new frontier
         else:
             # Find a new frontier if it exists
+            rospy.loginfo("Explorer: Searching for new frontier")
             self.searchForFrontier()
 
         # if self.occupancy and self.not_exploring:

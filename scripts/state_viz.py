@@ -28,7 +28,8 @@ class State_Viz:
 	self.state.color = ColorRGBA(0.0, 1.0, 0.0, 0.8)
 	self.state.scale = Vector3(0.2, 0.2, 0.2)
 	self.state.pose.position.x = 0.0
-	self.state.pose.position.y = 0.0
+	self.state.pose.position.y = 0.2
+	self.state.pose.position.z = 0.2
 	self.state.pose.orientation.x = 0.0
 	self.state.pose.orientation.y = 0.0
 	self.state.pose.orientation.z = 0.0
