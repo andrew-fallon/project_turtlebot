@@ -27,14 +27,20 @@ class Delivery:
 		self.theta_g = 0
 		self.deliv_queue = []
 		self.dq_empty = True
+		self.bottle_markers = MarkerArray()
 		self.delivery_pub = rospy.Publisher('/deli_pose', Pose2D, queue_size=10)
 		self.delivery_dq_empty_pub = rospy.Publisher('/dq_empty', Bool, queue_size=10)
 		rospy.Subscriber('/delivery_request', String, self.delivery_request_callback)
 		rospy.Subscriber('/curr_pose', Pose2D, self.curr_pose_callback)
+		rospy.Subscriber('bottle_markers', MarkerArray, self.bottle_markers_callback)
+
 
 	def delivery_request_callback(self, msg):
 		self.deliv_queue.extend(msg.data.split(","))
 		print(self.deliv_queue)
+
+	def bottle_markers_callback(self, msg):
+		self.bottle_markers = msg
 
 	def curr_pose_callback(self, msg):
 		self.x = msg.x
@@ -53,7 +59,7 @@ class Delivery:
 			# set current goal location as the first in delivery request queue
 			self.dq_empty = False
 			if self.deliv_queue[0] == 'bottle':
-				m_arrays = rospy.wait_for_message("bottle_markers", MarkerArray)
+				m_arrays = self.bottle_markers
 				rospy.loginfo('Current goal is bottle location')
 			elif self.deliv_queue[0] == 'apple': 
 				m_arrays = rospy.wait_for_message("apple_markers", MarkerArray)
@@ -76,10 +82,10 @@ class Delivery:
 				# print(m_arrays.markers)
 				m_array = m_arrays.markers[0]
 				# print(m_array)
-				self.x_g = m_array.pose.position[0]
-				self.y_g = m_array.pose.position[1]
-				euler = tf.transformation.euler_from_quaternion(m_array.pose.orientation)
-				self.theta_g = euler[2]
+				self.x_g = m_array.pose.position.x
+				self.y_g = m_array.pose.position.y
+				# euler = tf.transformations.euler_from_quaternion(m_array.pose.orientation)
+				self.theta_g = 0#euler[2]
 
 			# check if x y coord is close enough, if so then update queue and update goal location
 			if abs(self.x_g-self.x)<POS_EPS and abs(self.y_g-self.y)<POS_EPS and abs(self.theta_g-self.theta)<THETA_EPS < .25:
@@ -95,7 +101,7 @@ class Delivery:
 				else:
 					self.dq_empty =False
 					if self.deliv_queue[0] == 'bottle':
-						m_arrays = rospy.wait_for_message("bottle_markers", MarkerArray)
+						m_arrays = self.bottle_markers
 						rospy.loginfo('Updated goal is bottle location')
 					elif self.deliv_queue[0] == 'apple': 
 						m_arrays = rospy.wait_for_message("apple_markers", MarkerArray)
@@ -114,10 +120,10 @@ class Delivery:
 						m_arrays = MarkerArray()
 					if len(m_arrays.markers) != 0:
 						m_array = m_arrays.markers[0]
-						self.x_g = m_array.pose.position[0]
-						self.y_g = m_array.pose.position[1]
-						euler = tf.transformation.euler_from_quaternion(m_array.pose.orientation)
-						self.theta_g = euler[2]
+						self.x_g = m_array.pose.position.x
+						self.y_g = m_array.pose.position.y
+						# euler = tf.transformations.euler_from_quaternion(m_array.pose.orientation)
+						self.theta_g = 0#euler[2]
 		self.delivery_pub.publish(Pose2D(self.x_g,self.y_g,self.theta_g))
 		self.delivery_dq_empty_pub.publish(Bool(self.dq_empty))
 
