@@ -252,7 +252,7 @@ class Navigator:
             # if currently not moving, first line up with the plan
             if self.V_prev == 0:
                 theta_init = np.arctan2(self.current_plan[1][1]-self.current_plan[0][1],self.current_plan[1][0]-self.current_plan[0][0])
-                theta_err = theta_init-self.theta
+                theta_err = wrapToPi(theta_init-self.theta)
                 if abs(theta_err)>THETA_START_THRESH:
                     cmd_msg = Twist()
                     cmd_msg.linear.x = 0

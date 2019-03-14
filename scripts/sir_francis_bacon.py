@@ -407,6 +407,7 @@ class Supervisor:
             rospy.sleep(1.5)
             norm = ( (self.x - self.x_reset)**2 + (self.y - self.y_reset)**2 )**0.5
             if norm < POS_EPS:
+                self.stay_idle()    # command zero velocity before switching
                 self.mode = self.b4reset
             else:
                 self.go_to_pose(self.x_reset, self.y_reset, self.theta_reset)
