@@ -6,7 +6,7 @@
   <rosparam param="use_tf">false</rosparam>
 
   <node pkg="project_turtlebot" type="sir_francis_bacon.py" name="sir_francis_bacon" output="screen"/>
-  <node pkg="project_turtlebot" type="detector.py" name="turtlebot_detector" output="screen"/>  
+  <!-- <node pkg="project_turtlebot" type="detector.py" name="turtlebot_detector" output="screen"/> -->
   <node pkg="project_turtlebot" type="pose_controller_nav.py" name="turtlebot_pose_controller_nav" />
   <node pkg="project_turtlebot" type="navigator.py" name="turtlebot_navigator" output="screen"/>
 
@@ -22,7 +22,7 @@
   <node pkg="project_turtlebot" type="resetTurtle.py" name="reset_turtle" />
 
 
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find project_turtlebot)/rviz/project_config.rviz"/>
+  <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find project_turtlebot)/rviz/project_config.rviz"/> -->
 
 
 </launch>

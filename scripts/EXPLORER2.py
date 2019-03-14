@@ -45,12 +45,16 @@ class Explorer:
         rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
         rospy.Subscriber('/is_stuck', Bool, self.bad_goal_callback)
         rospy.Subscriber('/breadcrumb_marker', Marker, self.trail_callback)
+        rospy.sleep(8)
         self.RosRate = 1
 
     def trail_callback(self, msg):
+        if not self.occupancy:
+            return
         for i in range(0,len(msg.points)):
-            p = (msg.points[i].x, msg.points[i].y)
-            self.removeRegionFromSearch(p)
+            if msg.points[i] is not None:
+                p = (msg.points[i].x, msg.points[i].y)
+                self.removeRegionFromSearch(p)
 
     def map_md_callback(self, msg):
         self.map_width = msg.width
