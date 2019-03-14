@@ -78,10 +78,8 @@ class Locations:
 					self.apple_array, self.apple_id = self.buildMarkers(self.apple_array, self.apple_id, self.apple_color)
 				elif object_name == self.known_names[3]:
 					self.banana_array, self.banana_id = self.buildMarkers(self.banana_array, self.banana_id, self.banana_color)
-				elif object_name == self.known_names[3]:
+				elif object_name == self.known_names[4]:
 					self.broccoli_array, self.banana_id = self.buildMarkers(self.broccoli_array, self.broccoli_id, self.broccoli_color)
-
-
 
 	def loop(self):
 		self.stop_pub.publish(self.stop_array)
@@ -89,7 +87,6 @@ class Locations:
 		self.apple_pub.publish(self.apple_array)
 		self.banana_pub.publish(self.banana_array)
 		self.broccoli_pub.publish(self.broccoli_array)
-
 
 	def run(self):
 		rate = rospy.Rate(10) # 10 Hz
