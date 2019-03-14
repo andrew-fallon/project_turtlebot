@@ -231,6 +231,7 @@ class Navigator:
             # if stuck for some number of iterations, abort and send mode to reset
             elif self.stuck_iter > STUCK_THRESH:
                 self.nav_stuck_pub.publish(Bool(True))
+                self.V_prev = 0
                 return
 
             elif problem.init_err:
