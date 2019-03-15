@@ -28,11 +28,11 @@ class Locations:
 		self.banana_array = MarkerArray()
 		self.broccoli_array = MarkerArray()
 
-		self.stop_id = 0
-		self.bottle_id = 0
-		self.apple_id = 0
-		self.banana_id = 0
-		self.broccoli_id = 0
+		self.stop_id = 1
+		self.bottle_id = 1
+		self.apple_id = 1
+		self.banana_id = 1
+		self.broccoli_id = 1
 		self.stop_color = ColorRGBA(1.0,0.0,0.0,1.0)
 		self.bottle_color = ColorRGBA(0.0,0.0,1.0,1.0)
 		self.apple_color = ColorRGBA(0.5,0.0,0.0,1.0)

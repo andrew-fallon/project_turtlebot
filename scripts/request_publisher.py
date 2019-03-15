@@ -17,7 +17,7 @@ class DeliveryRequestPublisher:
     def publish_request(self):
         #publish the request t times, once every s seconds
         t = 10
-        s = 1.
+        s = 1.0
         for i in range(t):
             self.request_publisher.publish(self.delivery_request)
             rospy.sleep(s)
@@ -35,7 +35,7 @@ class DeliveryRequestPublisher:
             
             #gather requests from user input
             while request_not_complete:
-                new_item = raw_input("Add an item to your delivery request: ")
+                new_item = raw_input("Add an item and number to your delivery request i.e. 'banana x': ")
                 if new_item == "":
                     request_not_complete = False
                 else:
