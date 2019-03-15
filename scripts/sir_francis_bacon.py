@@ -36,8 +36,8 @@ STOP_MIN_DIST = 1.0
 CROSSING_TIME = 10.
 
 # initial delay timing
-INIT_DELAY = 5.
-DRIVE_FWD = 2.
+INIT_DELAY = 1.
+DRIVE_FWD = 0.1
 
 # state machine modes
 class Mode(Enum):

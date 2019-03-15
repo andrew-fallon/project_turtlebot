@@ -149,6 +149,9 @@ class PoseController:
         else:
             # haven't received a command in a while so stop
             rospy.loginfo("Pose controller TIMEOUT: commanding zero controls")
+            self.x_g = None
+            self.y_g = None
+            self.theta_g = None
             cmd_x_dot = 0
             cmd_theta_dot = 0
 
