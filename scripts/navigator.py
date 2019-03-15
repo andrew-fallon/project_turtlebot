@@ -24,7 +24,7 @@ END_POS_THRESH = .2
 START_POS_THRESH = .2
 
 # thereshold in theta to start moving forward when path following
-THETA_START_THRESH = 0.10
+THETA_START_THRESH = 0.20
 # P gain on orientation before start
 THETA_START_P = 1
 
